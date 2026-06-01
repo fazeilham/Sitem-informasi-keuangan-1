@@ -569,12 +569,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     const nominalInput = document.getElementById('nominal');
+    const jenisSelect = document.getElementById('jenis');
+    const kategoriSelect = document.getElementById('kategori_id');
     const pelangganSelect = document.getElementById('pelanggan_id');
     const kendaraanSelect = document.getElementById('kendaraan_id');
     const sparepartSelect = document.getElementById('sparepart_id');
     const qtyInput = document.getElementById('qty');
     const hargaSatuanInput = document.getElementById('harga_satuan');
     const subtotalInput = document.getElementById('subtotal');
+
+    function filterKategori() {
+        const selectedJenis = jenisSelect.value;
+        Array.from(kategoriSelect.options).forEach(option => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+            option.hidden = selectedJenis && option.dataset.jenis !== selectedJenis;
+        });
+        if (kategoriSelect.value && kategoriSelect.selectedOptions[0].hidden) {
+            kategoriSelect.value = '';
+        }
+    }
 
     function filterKendaraan() {
         const selectedPelanggan = pelangganSelect.value;
@@ -612,6 +628,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         e.target.value = value;
     });
 
+    jenisSelect.addEventListener('change', filterKategori);
     pelangganSelect.addEventListener('change', filterKendaraan);
     sparepartSelect.addEventListener('change', updateHargaSatuan);
     qtyInput.addEventListener('input', updateSubtotal);
@@ -626,6 +643,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     });
 
+    filterKategori();
     filterKendaraan();
     updateSubtotal();
     </script>
