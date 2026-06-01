@@ -33,6 +33,12 @@ if (mysqli_num_rows($check_columns) == 0) {
     mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN jasa_detail TEXT AFTER unit_keterangan");
     mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN barang_sparepart TEXT AFTER jasa_detail");
 }
+$check_columns = mysqli_query($koneksi, "SHOW COLUMNS FROM transaksi LIKE 'kategori_id'");
+if (mysqli_num_rows($check_columns) == 0) {
+    mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN kategori_id INT NULL AFTER kategori");
+    mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN pelanggan_id INT NULL AFTER user_id");
+    mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN kendaraan_id INT NULL AFTER pelanggan_id");
+}
 
 // Hash password untuk admin123
 $password_hash = password_hash('admin123', PASSWORD_DEFAULT);
