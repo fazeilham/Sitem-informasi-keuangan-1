@@ -55,7 +55,7 @@ if ($result_sparepart) {
     }
 }
 
-if (count($kategori_list) == 0 && count($pelanggan_list) == 0) {
+if (count($kategori_list) == 0 && count($pelangsi_list) == 0) {
     $error = "Catatan: Tabel master data tidak tersedia. Jalankan setup.php terlebih dahulu untuk membuat tabel kategori, pelanggan, kendaraan, dan sparepart.";
 }
 
@@ -483,12 +483,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </span>
                             <select class="form-select with-icon" id="pelanggan_id" name="pelanggan_id" required>
                                 <option value="">-- Pilih Pelanggan --</option>
-                                <?php foreach ($pelanggan_list as $row): ?>
+                                <?php if ($pelanggan_list): ?>
+                                <?php while ($row = mysqli_fetch_assoc($pelanggan_list)): ?>
                                 <option value="<?php echo $row['id']; ?>"
                                     <?php echo $selected_pelanggan == $row['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($row['nama']); ?>
                                 </option>
-                                <?php endforeach; ?>
+                                <?php endwhile; ?>
+                                <?php endif; ?>
                             </select>
                         </div>
                         <small class="text-muted">Pilih pelanggan yang menerima jasa atau membeli produk.</small>
@@ -507,13 +509,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </span>
                             <select class="form-select with-icon" id="kendaraan_id" name="kendaraan_id" required>
                                 <option value="">-- Pilih Kendaraan --</option>
-                                <?php foreach ($kendaraan_list as $row): ?>
+                                <?php if ($kendaraan_list): ?>
+                                <?php while ($row = mysqli_fetch_assoc($kendaraan_list)): ?>
                                 <option value="<?php echo $row['id']; ?>"
                                     data-pelanggan-id="<?php echo $row['pelanggan_id']; ?>"
                                     <?php echo $selected_kendaraan == $row['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($row['no_plat'] . ' / ' . $row['merek'] . ' (' . $row['pelanggan_nama'] . ')'); ?>
                                 </option>
-                                <?php endforeach; ?>
+                                <?php endwhile; ?>
+                                <?php endif; ?>
                             </select>
                         </div>
                         <small class="text-muted">Pilih kendaraan yang terkait dengan transaksi.</small>
@@ -529,12 +533,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </span>
                             <select class="form-select with-icon" id="sparepart_id" name="sparepart_id">
                                 <option value="">-- Pilih Sparepart --</option>
-                                <?php foreach ($sparepart_list as $row): ?>
+                                <?php if ($sparepart_list): ?>
+                                <?php while ($row = mysqli_fetch_assoc($sparepart_list)): ?>
                                 <option value="<?php echo $row['id']; ?>" data-price="<?php echo $row['harga_jual']; ?>"
                                     <?php echo $selected_sparepart == $row['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($row['nama'] . ' (' . $row['satuan'] . ') - Rp ' . number_format($row['harga_jual'], 0, ',', '.')); ?>
                                 </option>
-                                <?php endforeach; ?>
+                                <?php endwhile; ?>
+                                <?php endif; ?>
                             </select>
                         </div>
                         <small class="text-muted">Pilih sparepart yang digunakan (jika ada).</small>
