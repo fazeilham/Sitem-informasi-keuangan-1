@@ -11,7 +11,12 @@ if (!isset($_SESSION['user_id'])) {
 // Query untuk mendapatkan statistik keuangan
 $query_pemasukan = "SELECT SUM(jumlah) as total FROM transaksi WHERE jenis = 'pemasukan'";
 $query_pengeluaran = "SELECT SUM(jumlah) as total FROM transaksi WHERE jenis = 'pengeluaran'";
-$query_transaksi = "SELECT * FROM transaksi ORDER BY tanggal DESC LIMIT 10";
+$query_transaksi = "SELECT t.*, k.nama as nama_kategori, p.nama as nama_pelanggan, v.no_plat 
+                    FROM transaksi t 
+                    LEFT JOIN kategori k ON t.kategori_id = k.id 
+                    LEFT JOIN pelanggan p ON t.pelanggan_id = p.id 
+                    LEFT JOIN kendaraan v ON t.kendaraan_id = v.id 
+                    ORDER BY t.tanggal DESC, t.created_at DESC LIMIT 10";
 
 $result_pemasukan = mysqli_query($koneksi, $query_pemasukan);
 $result_pengeluaran = mysqli_query($koneksi, $query_pengeluaran);
@@ -360,15 +365,33 @@ $saldo = $total_pemasukan - $total_pengeluaran;
                                     ?>
                             <tr>
                                 <td><?php echo date('d/m/Y', strtotime($row['tanggal'])); ?></td>
-                                <td><?php echo htmlspecialchars($row['kategori']); ?></td>
-                                <td><?php echo htmlspecialchars($row['keterangan']); ?></td>
+                                <td>
+                                    <?php 
+                                    $kategori_display = !empty($row['nama_kategori']) ? $row['nama_kategori'] : $row['kategori'];
+                                    echo htmlspecialchars($kategori_display); 
+                                    ?>
+                                </td>
+                                <td>
+                                    <div class="detail-text" title="<?php echo htmlspecialchars($row['keterangan']); ?>">
+                                        <?php 
+                                        if (!empty($row['nama_pelanggan'])) {
+                                            echo "<strong>" . htmlspecialchars($row['nama_pelanggan']) . "</strong>";
+                                            if (!empty($row['no_plat'])) echo " (" . htmlspecialchars($row['no_plat']) . ")";
+                                            echo "<br>";
+                                        }
+                                        echo htmlspecialchars($row['keterangan']); 
+                                        ?>
+                                    </div>
+                                </td>
                                 <td>
                                     <span class="<?php echo $badge_class; ?>">
                                         <i class="bi bi-<?php echo $icon; ?>"></i>
                                         <?php echo ucfirst($row['jenis']); ?>
                                     </span>
                                 </td>
-                                <td><strong>Rp <?php echo number_format($row['jumlah'], 0, ',', '.'); ?></strong></td>
+                                <td class="fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">
+                                    Rp <?php echo number_format($row['jumlah'], 0, ',', '.'); ?>
+                                </td>
                                 <td>
                                     <a href="CRUD/update.php?id=<?php echo $row['id']; ?>"
                                         class="btn btn-sm btn-warning">

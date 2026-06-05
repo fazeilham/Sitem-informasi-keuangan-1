@@ -33,44 +33,54 @@ if ($id > 0) {
     exit();
 }
 
+// Query master data
+$kategori_list = array();
+$result_kategori = mysqli_query($koneksi, "SELECT id, nama, jenis FROM kategori ORDER BY nama");
+while ($row = mysqli_fetch_assoc($result_kategori)) {
+    $kategori_list[] = $row;
+}
+
+$pelanggan_list = array();
+$result_pelanggan = mysqli_query($koneksi, "SELECT id, nama FROM pelanggan ORDER BY nama");
+while ($row = mysqli_fetch_assoc($result_pelanggan)) {
+    $pelanggan_list[] = $row;
+}
+
+$kendaraan_list = array();
+$result_kendaraan = mysqli_query($koneksi, "SELECT k.id, k.no_plat, k.merek, k.pelanggan_id, p.nama AS pelanggan_nama FROM kendaraan k LEFT JOIN pelanggan p ON k.pelanggan_id = p.id ORDER BY p.nama, k.no_plat");
+while ($row = mysqli_fetch_assoc($result_kendaraan)) {
+    $kendaraan_list[] = $row;
+}
+
 // Proses form submit
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $tanggal = mysqli_real_escape_string($koneksi, $_POST['tanggal']);
     $jenis = mysqli_real_escape_string($koneksi, $_POST['jenis']);
-    $kategori = mysqli_real_escape_string($koneksi, $_POST['kategori']);
-    $unit_keterangan = mysqli_real_escape_string($koneksi, $_POST['unit_keterangan']);
+    $kategori_id = intval($_POST['kategori_id']);
+    $pelanggan_id = isset($_POST['pelanggan_id']) ? intval($_POST['pelanggan_id']) : 0;
+    $kendaraan_id = isset($_POST['kendaraan_id']) ? intval($_POST['kendaraan_id']) : 0;
     $jasa_detail = mysqli_real_escape_string($koneksi, $_POST['jasa_detail']);
     $barang_sparepart = mysqli_real_escape_string($koneksi, $_POST['barang_sparepart']);
     $nominal = mysqli_real_escape_string($koneksi, $_POST['nominal']);
     
     // Validasi
-    if (empty($tanggal) || empty($jenis) || empty($kategori) || empty($nominal)) {
+    if (empty($tanggal) || empty($jenis) || empty($kategori_id) || empty($nominal)) {
         $error = "Field yang wajib diisi tidak boleh kosong!";
     } else {
-        // Cek apakah kolom baru sudah ada, jika belum tambahkan
-        $check_columns = mysqli_query($koneksi, "SHOW COLUMNS FROM transaksi LIKE 'unit_keterangan'");
-        if (mysqli_num_rows($check_columns) == 0) {
-            mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN unit_keterangan VARCHAR(255) AFTER kategori");
-            mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN jasa_detail TEXT AFTER unit_keterangan");
-            mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN barang_sparepart TEXT AFTER jasa_detail");
+        $kategori_name = '';
+        $result_kat = mysqli_query($koneksi, "SELECT nama FROM kategori WHERE id = $kategori_id");
+        if ($row_kat = mysqli_fetch_assoc($result_kat)) {
+            $kategori_name = $row_kat['nama'];
         }
-        
-        // Gabungkan keterangan untuk field keterangan lama (backward compatibility)
-        $keterangan_full = "Unit/Keterangan: " . $unit_keterangan;
-        if (!empty($jasa_detail)) {
-            $keterangan_full .= " | Jasa: " . $jasa_detail;
-        }
-        if (!empty($barang_sparepart)) {
-            $keterangan_full .= " | Sparepart: " . $barang_sparepart;
-        }
-        
+
         // Update query
         $update_query = "UPDATE transaksi SET 
                         tanggal = '$tanggal',
                         jenis = '$jenis',
-                        kategori = '$kategori',
-                        keterangan = '$keterangan_full',
-                        unit_keterangan = '$unit_keterangan',
+                        kategori = '$kategori_name',
+                        kategori_id = $kategori_id,
+                        pelanggan_id = " . ($pelanggan_id > 0 ? $pelanggan_id : "NULL") . ",
+                        kendaraan_id = " . ($kendaraan_id > 0 ? $kendaraan_id : "NULL") . ",
                         jasa_detail = '$jasa_detail',
                         barang_sparepart = '$barang_sparepart',
                         jumlah = '$nominal'
@@ -78,7 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (mysqli_query($koneksi, $update_query)) {
             $success = "Data transaksi berhasil diupdate!";
-            // Redirect setelah 2 detik
             header("refresh:2;url=lihat.php?success=" . urlencode($success));
         } else {
             $error = "Error: " . mysqli_error($koneksi);
@@ -371,34 +380,83 @@ $nominal = $data['jumlah'] ?? '';
                 <div class="row">
                     <!-- Kategori Transaksi -->
                     <div class="col-md-6 mb-3">
-                        <label for="kategori" class="form-label">
+                        <label for="kategori_id" class="form-label">
                             Kategori Transaksi <span class="required">*</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
                                 <i class="bi bi-tags"></i>
                             </span>
-                            <input type="text" class="form-control with-icon" id="kategori" name="kategori"
-                                value="<?php echo htmlspecialchars($kategori); ?>"
-                                placeholder="Contoh: Service Motor, Beli Sparepart, dll" required>
+                            <select class="form-select with-icon" id="kategori_id" name="kategori_id" required>
+                                <option value="">-- Pilih Kategori --</option>
+                                <?php foreach ($kategori_list as $row): ?>
+                                <option value="<?php echo $row['id']; ?>" data-jenis="<?php echo $row['jenis']; ?>"
+                                    <?php echo ($data['kategori_id'] ?? 0) == $row['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($row['nama']); ?>
+                                    (<?php echo ucfirst($row['jenis']); ?>)
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        <small class="text-muted">Contoh: Service Motor, Beli Sparepart, Penjualan, dll</small>
                     </div>
 
-                    <!-- Unit / Keterangan -->
+                    <!-- Pelanggan -->
                     <div class="col-md-6 mb-3">
-                        <label for="unit_keterangan" class="form-label">
-                            Unit / Keterangan
+                        <label for="pelanggan_id" class="form-label">
+                            Pelanggan <span class="required" id="req_pelanggan">*</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
-                                <i class="bi bi-bicycle"></i>
+                                <i class="bi bi-people"></i>
                             </span>
-                            <input type="text" class="form-control with-icon" id="unit_keterangan"
-                                name="unit_keterangan" value="<?php echo htmlspecialchars($unit_keterangan); ?>"
-                                placeholder="Contoh: Motor Honda CBR 150R, dll">
+                            <select class="form-select with-icon" id="pelanggan_id" name="pelanggan_id">
+                                <option value="">-- Pilih Pelanggan --</option>
+                                <?php foreach ($pelanggan_list as $row): ?>
+                                <option value="<?php echo $row['id']; ?>"
+                                    <?php echo ($data['pelanggan_id'] ?? 0) == $row['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($row['nama']); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        <small class="text-muted">Nama unit/kendaraan atau keterangan umum</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Kendaraan -->
+                    <div class="col-md-6 mb-3">
+                        <label for="kendaraan_id" class="form-label">
+                            Kendaraan <span class="required" id="req_kendaraan">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-car-front"></i>
+                            </span>
+                            <select class="form-select with-icon" id="kendaraan_id" name="kendaraan_id">
+                                <option value="">-- Pilih Kendaraan --</option>
+                                <?php foreach ($kendaraan_list as $row): ?>
+                                <option value="<?php echo $row['id']; ?>"
+                                    data-pelanggan-id="<?php echo $row['pelanggan_id']; ?>"
+                                    <?php echo ($data['kendaraan_id'] ?? 0) == $row['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($row['no_plat'] . ' / ' . $row['merek'] . ' (' . $row['pelanggan_nama'] . ')'); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Unit Keterangan (Legacy) -->
+                    <div class="col-md-6 mb-3">
+                        <label for="unit_keterangan" class="form-label">
+                            Unit / Keterangan (Legacy)
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-info-circle"></i>
+                            </span>
+                            <input type="text" class="form-control with-icon" id="unit_keterangan" name="unit_keterangan"
+                                value="<?php echo htmlspecialchars($unit_keterangan); ?>" placeholder="Unit atau kendaraan">
+                        </div>
                     </div>
                 </div>
 
@@ -462,6 +520,47 @@ $nominal = $data['jumlah'] ?? '';
     });
 
     // Validasi form sebelum submit
+    const jenisSelect = document.getElementById('jenis');
+    const kategoriSelect = document.getElementById('kategori_id');
+    const pelangganSelect = document.getElementById('pelanggan_id');
+    const kendaraanSelect = document.getElementById('kendaraan_id');
+
+    function filterKategori() {
+        const selectedJenis = jenisSelect.value;
+        Array.from(kategoriSelect.options).forEach(option => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+            option.hidden = selectedJenis && option.dataset.jenis !== selectedJenis;
+        });
+
+        // Toggle required for pelanggan and kendaraan
+        const isPemasukan = selectedJenis === 'pemasukan';
+        document.getElementById('req_pelanggan').style.display = isPemasukan ? 'inline' : 'none';
+        document.getElementById('req_kendaraan').style.display = isPemasukan ? 'inline' : 'none';
+        pelangganSelect.required = isPemasukan;
+        kendaraanSelect.required = isPemasukan;
+    }
+
+    function filterKendaraan() {
+        const selectedPelanggan = pelangganSelect.value;
+        Array.from(kendaraanSelect.options).forEach(option => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+            option.hidden = selectedPelanggan && option.dataset.pelangganId !== selectedPelanggan;
+        });
+    }
+
+    jenisSelect.addEventListener('change', filterKategori);
+    pelangganSelect.addEventListener('change', filterKendaraan);
+
+    // Run filters on load
+    filterKategori();
+    filterKendaraan();
+
     document.getElementById('transaksiForm').addEventListener('submit', function(e) {
         const nominal = document.getElementById('nominal').value;
         if (nominal <= 0) {

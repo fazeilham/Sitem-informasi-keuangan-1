@@ -35,6 +35,8 @@ $create_kategori_table = "CREATE TABLE IF NOT EXISTS kategori (
 $create_pelanggan_table = "CREATE TABLE IF NOT EXISTS pelanggan (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama VARCHAR(100) NOT NULL,
+    telepon VARCHAR(20) NULL,
+    alamat TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 
@@ -43,26 +45,33 @@ $create_kendaraan_table = "CREATE TABLE IF NOT EXISTS kendaraan (
     pelanggan_id INT NULL,
     no_plat VARCHAR(20) NOT NULL,
     merek VARCHAR(50) NOT NULL,
+    tipe VARCHAR(50) NULL,
+    warna VARCHAR(30) NULL,
     FOREIGN KEY (pelanggan_id) REFERENCES pelanggan(id) ON DELETE SET NULL
 )";
 
 $create_sparepart_table = "CREATE TABLE IF NOT EXISTS sparepart (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama VARCHAR(150) NOT NULL,
+    kode_part VARCHAR(50) NULL,
     satuan VARCHAR(30) NULL,
-    harga_beli DECIMAL(15,2) NULL,
-    harga_jual DECIMAL(15,2) NULL
+    harga_beli DECIMAL(15,2) DEFAULT 0,
+    harga_jual DECIMAL(15,2) DEFAULT 0,
+    stok INT DEFAULT 0
 )";
 
-$create_detail_transaksi_table = "CREATE TABLE IF NOT EXISTS detail_transaksi (
+$create_detailtransaksi_table = "CREATE TABLE IF NOT EXISTS detailtransaksi (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    transaksi_id INT NULL,
+    transaksi_id INT NOT NULL,
+    kategori_id INT NULL,
     sparepart_id INT NULL,
     nama_item VARCHAR(150) NULL,
-    qty INT(11) NULL,
-    harga_satuan DECIMAL(15,2) NULL,
-    subtotal DECIMAL(15,2) NULL,
+    qty INT(11) DEFAULT 1,
+    harga_satuan DECIMAL(15,2) DEFAULT 0,
+    subtotal DECIMAL(15,2) DEFAULT 0,
+    keterangan TEXT NULL,
     FOREIGN KEY (transaksi_id) REFERENCES transaksi(id) ON DELETE CASCADE,
+    FOREIGN KEY (kategori_id) REFERENCES kategori(id) ON DELETE SET NULL,
     FOREIGN KEY (sparepart_id) REFERENCES sparepart(id) ON DELETE SET NULL
 )";
 
@@ -70,7 +79,7 @@ mysqli_query($koneksi, $create_kategori_table);
 mysqli_query($koneksi, $create_pelanggan_table);
 mysqli_query($koneksi, $create_kendaraan_table);
 mysqli_query($koneksi, $create_sparepart_table);
-mysqli_query($koneksi, $create_detail_transaksi_table);
+mysqli_query($koneksi, $create_detailtransaksi_table);
 
 // Tambahkan kolom baru jika belum ada
 $check_columns = mysqli_query($koneksi, "SHOW COLUMNS FROM transaksi LIKE 'unit_keterangan'");

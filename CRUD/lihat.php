@@ -13,7 +13,12 @@ $success_msg = isset($_GET['success']) ? $_GET['success'] : '';
 $error_msg = isset($_GET['error']) ? $_GET['error'] : '';
 
 // Query untuk mendapatkan semua transaksi
-$query = "SELECT * FROM transaksi ORDER BY tanggal DESC, created_at DESC";
+$query = "SELECT t.*, k.nama as nama_kategori, p.nama as nama_pelanggan, v.no_plat 
+          FROM transaksi t 
+          LEFT JOIN kategori k ON t.kategori_id = k.id 
+          LEFT JOIN pelanggan p ON t.pelanggan_id = p.id 
+          LEFT JOIN kendaraan v ON t.kendaraan_id = v.id 
+          ORDER BY t.tanggal DESC, t.created_at DESC";
 $result = mysqli_query($koneksi, $query);
 
 // Query untuk statistik
@@ -418,31 +423,42 @@ $total_transaksi = mysqli_num_rows($result);
                                         <?php echo ucfirst($row['jenis']); ?>
                                     </span>
                                 </td>
-                                <td><strong><?php echo htmlspecialchars($row['kategori']); ?></strong></td>
                                 <td>
-                                    <div class="detail-text" title="<?php echo htmlspecialchars($unit_keterangan); ?>">
-                                        <?php echo htmlspecialchars($unit_keterangan); ?>
+                                    <strong>
+                                        <?php 
+                                        $kategori_display = !empty($row['nama_kategori']) ? $row['nama_kategori'] : $row['kategori'];
+                                        echo htmlspecialchars($kategori_display); 
+                                        ?>
+                                    </strong>
+                                </td>
+                                <td>
+                                    <div class="detail-text-full">
+                                        <?php 
+                                        if (!empty($row['nama_pelanggan'])) {
+                                            echo "<strong>" . htmlspecialchars($row['nama_pelanggan']) . "</strong>";
+                                            if (!empty($row['no_plat'])) echo " (" . htmlspecialchars($row['no_plat']) . ")";
+                                            echo "<br>";
+                                        }
+                                        echo htmlspecialchars($unit_keterangan); 
+                                        ?>
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="detail-text" title="<?php echo htmlspecialchars($jasa_detail); ?>">
+                                    <div class="detail-text-full">
                                         <?php echo htmlspecialchars($jasa_detail); ?>
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="detail-text" title="<?php echo htmlspecialchars($barang_sparepart); ?>">
+                                    <div class="detail-text-full">
                                         <?php echo htmlspecialchars($barang_sparepart); ?>
                                     </div>
                                 </td>
-                                <td>
-                                    <strong
-                                        style="color: <?php echo $row['jenis'] == 'pemasukan' ? '#28a745' : '#dc3545'; ?>;">
-                                        <?php echo $row['jenis'] == 'pemasukan' ? '+' : '-'; ?>Rp
-                                        <?php echo number_format($row['jumlah'], 0, ',', '.'); ?>
-                                    </strong>
+                                <td class="fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">
+                                    <?php echo $row['jenis'] == 'pemasukan' ? '+' : '-'; ?>Rp
+                                    <?php echo number_format($row['jumlah'], 0, ',', '.'); ?>
                                 </td>
                                 <td>
-                                    <div class="btn-group" role="group">
+                                    <div class="d-flex gap-1">
                                         <a href="update.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-warning"
                                             title="Edit">
                                             <i class="bi bi-pencil"></i>
