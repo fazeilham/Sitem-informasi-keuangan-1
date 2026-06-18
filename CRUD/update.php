@@ -33,56 +33,37 @@ if ($id > 0) {
     exit();
 }
 
-// Query master data
-$kategori_list = array();
-$result_kategori = mysqli_query($koneksi, "SELECT id, nama, jenis FROM kategori ORDER BY nama");
-while ($row = mysqli_fetch_assoc($result_kategori)) {
-    $kategori_list[] = $row;
-}
-
-$pelanggan_list = array();
-$result_pelanggan = mysqli_query($koneksi, "SELECT id, nama FROM pelanggan ORDER BY nama");
-while ($row = mysqli_fetch_assoc($result_pelanggan)) {
-    $pelanggan_list[] = $row;
-}
-
-$kendaraan_list = array();
-$result_kendaraan = mysqli_query($koneksi, "SELECT k.id, k.no_plat, k.merek, k.pelanggan_id, p.nama AS pelanggan_nama FROM kendaraan k LEFT JOIN pelanggan p ON k.pelanggan_id = p.id ORDER BY p.nama, k.no_plat");
-while ($row = mysqli_fetch_assoc($result_kendaraan)) {
-    $kendaraan_list[] = $row;
-}
-
 // Proses form submit
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $tanggal = mysqli_real_escape_string($koneksi, $_POST['tanggal']);
     $jenis = mysqli_real_escape_string($koneksi, $_POST['jenis']);
-    $kategori_id = intval($_POST['kategori_id']);
-    $pelanggan_id = isset($_POST['pelanggan_id']) ? intval($_POST['pelanggan_id']) : 0;
-    $kendaraan_id = isset($_POST['kendaraan_id']) ? intval($_POST['kendaraan_id']) : 0;
+    $kategori = mysqli_real_escape_string($koneksi, $_POST['kategori']);
+    $pelanggan = mysqli_real_escape_string($koneksi, $_POST['pelanggan']);
+    $kendaraan = mysqli_real_escape_string($koneksi, $_POST['kendaraan']);
+    $sparepart = mysqli_real_escape_string($koneksi, $_POST['sparepart']);
     $jasa_detail = mysqli_real_escape_string($koneksi, $_POST['jasa_detail']);
-    $barang_sparepart = mysqli_real_escape_string($koneksi, $_POST['barang_sparepart']);
     $nominal = mysqli_real_escape_string($koneksi, $_POST['nominal']);
     
     // Validasi
-    if (empty($tanggal) || empty($jenis) || empty($kategori_id) || empty($nominal)) {
+    if (empty($tanggal) || empty($jenis) || empty($kategori) || empty($nominal)) {
         $error = "Field yang wajib diisi tidak boleh kosong!";
     } else {
-        $kategori_name = '';
-        $result_kat = mysqli_query($koneksi, "SELECT nama FROM kategori WHERE id = $kategori_id");
-        if ($row_kat = mysqli_fetch_assoc($result_kat)) {
-            $kategori_name = $row_kat['nama'];
-        }
+        // Build keterangan
+        $keterangan_full = "Kategori: " . $kategori;
+        if (!empty($pelanggan)) $keterangan_full .= " | Pelanggan: " . $pelanggan;
+        if (!empty($kendaraan)) $keterangan_full .= " | Kendaraan: " . $kendaraan;
+        if (!empty($sparepart)) $keterangan_full .= " | Sparepart: " . $sparepart;
+        if (!empty($jasa_detail)) $keterangan_full .= " | Jasa: " . $jasa_detail;
 
         // Update query
         $update_query = "UPDATE transaksi SET 
                         tanggal = '$tanggal',
                         jenis = '$jenis',
-                        kategori = '$kategori_name',
-                        kategori_id = $kategori_id,
-                        pelanggan_id = " . ($pelanggan_id > 0 ? $pelanggan_id : "NULL") . ",
-                        kendaraan_id = " . ($kendaraan_id > 0 ? $kendaraan_id : "NULL") . ",
+                        kategori = '$kategori',
+                        keterangan = '$keterangan_full',
+                        unit_keterangan = '$kendaraan',
                         jasa_detail = '$jasa_detail',
-                        barang_sparepart = '$barang_sparepart',
+                        barang_sparepart = '$sparepart',
                         jumlah = '$nominal'
                         WHERE id = $id";
         
@@ -103,6 +84,24 @@ $unit_keterangan = $data['unit_keterangan'] ?? '';
 $jasa_detail = $data['jasa_detail'] ?? '';
 $barang_sparepart = $data['barang_sparepart'] ?? '';
 $nominal = $data['jumlah'] ?? '';
+
+// Parse keterangan for initial values
+$pelanggan = '';
+$kendaraan = $unit_keterangan;
+$sparepart = $barang_sparepart;
+
+if (!empty($data['keterangan'])) {
+    $parts = explode(' | ', $data['keterangan']);
+    foreach ($parts as $part) {
+        if (strpos($part, 'Pelanggan: ') === 0) {
+            $pelanggan = substr($part, 11);
+        } elseif (strpos($part, 'Kendaraan: ') === 0) {
+            $kendaraan = substr($part, 10);
+        } elseif (strpos($part, 'Sparepart: ') === 0) {
+            $sparepart = substr($part, 10);
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -245,18 +244,6 @@ $nominal = $data['jumlah'] ?? '';
         border-left: none;
         border-radius: 0 10px 10px 0;
     }
-
-    .info-box {
-        background: #e7f3ff;
-        border-left: 4px solid #667eea;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-
-    .info-box i {
-        color: #667eea;
-    }
     </style>
 </head>
 
@@ -277,10 +264,14 @@ $nominal = $data['jumlah'] ?? '';
                             <i class="bi bi-house-door"></i> Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="create.php">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                             <i class="bi bi-plus-circle"></i> Tambah Transaksi
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="create_pemasukan.php">Tambah Pemasukan</a></li>
+                            <li><a class="dropdown-item" href="create_pengeluaran.php">Tambah Pengeluaran</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="lihat.php">
@@ -336,11 +327,6 @@ $nominal = $data['jumlah'] ?? '';
             </div>
             <?php endif; ?>
 
-            <div class="info-box">
-                <i class="bi bi-info-circle"></i> <strong>Informasi:</strong> Field yang ditandai dengan <span
-                    class="required">*</span> wajib diisi.
-            </div>
-
             <form method="POST" action="" id="transaksiForm">
                 <div class="row">
                     <!-- Tanggal Transaksi -->
@@ -380,44 +366,29 @@ $nominal = $data['jumlah'] ?? '';
                 <div class="row">
                     <!-- Kategori Transaksi -->
                     <div class="col-md-6 mb-3">
-                        <label for="kategori_id" class="form-label">
+                        <label for="kategori" class="form-label">
                             Kategori Transaksi <span class="required">*</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
                                 <i class="bi bi-tags"></i>
                             </span>
-                            <select class="form-select with-icon" id="kategori_id" name="kategori_id" required>
-                                <option value="">-- Pilih Kategori --</option>
-                                <?php foreach ($kategori_list as $row): ?>
-                                <option value="<?php echo $row['id']; ?>" data-jenis="<?php echo $row['jenis']; ?>"
-                                    <?php echo ($data['kategori_id'] ?? 0) == $row['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($row['nama']); ?>
-                                    (<?php echo ucfirst($row['jenis']); ?>)
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <input type="text" class="form-control with-icon" id="kategori" name="kategori"
+                                value="<?php echo htmlspecialchars($kategori); ?>" required>
                         </div>
                     </div>
 
                     <!-- Pelanggan -->
                     <div class="col-md-6 mb-3">
-                        <label for="pelanggan_id" class="form-label">
-                            Pelanggan <span class="required" id="req_pelanggan">*</span>
+                        <label for="pelanggan" class="form-label">
+                            Pelanggan
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
                                 <i class="bi bi-people"></i>
                             </span>
-                            <select class="form-select with-icon" id="pelanggan_id" name="pelanggan_id">
-                                <option value="">-- Pilih Pelanggan --</option>
-                                <?php foreach ($pelanggan_list as $row): ?>
-                                <option value="<?php echo $row['id']; ?>"
-                                    <?php echo ($data['pelanggan_id'] ?? 0) == $row['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($row['nama']); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <input type="text" class="form-control with-icon" id="pelanggan" name="pelanggan"
+                                value="<?php echo htmlspecialchars($pelanggan); ?>">
                         </div>
                     </div>
                 </div>
@@ -425,37 +396,29 @@ $nominal = $data['jumlah'] ?? '';
                 <div class="row">
                     <!-- Kendaraan -->
                     <div class="col-md-6 mb-3">
-                        <label for="kendaraan_id" class="form-label">
-                            Kendaraan <span class="required" id="req_kendaraan">*</span>
+                        <label for="kendaraan" class="form-label">
+                            Kendaraan
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
                                 <i class="bi bi-car-front"></i>
                             </span>
-                            <select class="form-select with-icon" id="kendaraan_id" name="kendaraan_id">
-                                <option value="">-- Pilih Kendaraan --</option>
-                                <?php foreach ($kendaraan_list as $row): ?>
-                                <option value="<?php echo $row['id']; ?>"
-                                    data-pelanggan-id="<?php echo $row['pelanggan_id']; ?>"
-                                    <?php echo ($data['kendaraan_id'] ?? 0) == $row['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($row['no_plat'] . ' / ' . $row['merek'] . ' (' . $row['pelanggan_nama'] . ')'); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <input type="text" class="form-control with-icon" id="kendaraan" name="kendaraan"
+                                value="<?php echo htmlspecialchars($kendaraan); ?>">
                         </div>
                     </div>
 
-                    <!-- Unit Keterangan (Legacy) -->
+                    <!-- Sparepart -->
                     <div class="col-md-6 mb-3">
-                        <label for="unit_keterangan" class="form-label">
-                            Unit / Keterangan (Legacy)
+                        <label for="sparepart" class="form-label">
+                            Sparepart
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
-                                <i class="bi bi-info-circle"></i>
+                                <i class="bi bi-box-seam"></i>
                             </span>
-                            <input type="text" class="form-control with-icon" id="unit_keterangan" name="unit_keterangan"
-                                value="<?php echo htmlspecialchars($unit_keterangan); ?>" placeholder="Unit atau kendaraan">
+                            <input type="text" class="form-control with-icon" id="sparepart" name="sparepart"
+                                value="<?php echo htmlspecialchars($sparepart); ?>">
                         </div>
                     </div>
                 </div>
@@ -467,17 +430,6 @@ $nominal = $data['jumlah'] ?? '';
                     </label>
                     <textarea class="form-control" id="jasa_detail" name="jasa_detail" rows="3"
                         placeholder="Contoh: Service berkala, Ganti oli, Tune up mesin, dll"><?php echo htmlspecialchars($jasa_detail); ?></textarea>
-                    <small class="text-muted">Detail jasa yang dikerjakan atau diberikan</small>
-                </div>
-
-                <!-- Barang dan Harga Sparepart -->
-                <div class="mb-3">
-                    <label for="barang_sparepart" class="form-label">
-                        <i class="bi bi-box-seam"></i> Barang dan Harga Sparepart
-                    </label>
-                    <textarea class="form-control" id="barang_sparepart" name="barang_sparepart" rows="3"
-                        placeholder="Contoh: Oli mesin 1L x Rp 50.000, Filter udara x Rp 25.000, dll"><?php echo htmlspecialchars($barang_sparepart); ?></textarea>
-                    <small class="text-muted">Daftar sparepart yang digunakan beserta harganya</small>
                 </div>
 
                 <!-- Nominal (Total) -->
@@ -493,7 +445,6 @@ $nominal = $data['jumlah'] ?? '';
                             value="<?php echo htmlspecialchars($nominal); ?>" placeholder="0" min="0" step="0.01"
                             required>
                     </div>
-                    <small class="text-muted">Masukkan total nominal transaksi</small>
                 </div>
 
                 <!-- Button Actions -->
@@ -510,66 +461,6 @@ $nominal = $data['jumlah'] ?? '';
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-    // Format nominal saat input
-    document.getElementById('nominal').addEventListener('input', function(e) {
-        let value = e.target.value;
-        // Hapus karakter selain angka dan titik
-        value = value.replace(/[^\d.]/g, '');
-        e.target.value = value;
-    });
-
-    // Validasi form sebelum submit
-    const jenisSelect = document.getElementById('jenis');
-    const kategoriSelect = document.getElementById('kategori_id');
-    const pelangganSelect = document.getElementById('pelanggan_id');
-    const kendaraanSelect = document.getElementById('kendaraan_id');
-
-    function filterKategori() {
-        const selectedJenis = jenisSelect.value;
-        Array.from(kategoriSelect.options).forEach(option => {
-            if (!option.value) {
-                option.hidden = false;
-                return;
-            }
-            option.hidden = selectedJenis && option.dataset.jenis !== selectedJenis;
-        });
-
-        // Toggle required for pelanggan and kendaraan
-        const isPemasukan = selectedJenis === 'pemasukan';
-        document.getElementById('req_pelanggan').style.display = isPemasukan ? 'inline' : 'none';
-        document.getElementById('req_kendaraan').style.display = isPemasukan ? 'inline' : 'none';
-        pelangganSelect.required = isPemasukan;
-        kendaraanSelect.required = isPemasukan;
-    }
-
-    function filterKendaraan() {
-        const selectedPelanggan = pelangganSelect.value;
-        Array.from(kendaraanSelect.options).forEach(option => {
-            if (!option.value) {
-                option.hidden = false;
-                return;
-            }
-            option.hidden = selectedPelanggan && option.dataset.pelangganId !== selectedPelanggan;
-        });
-    }
-
-    jenisSelect.addEventListener('change', filterKategori);
-    pelangganSelect.addEventListener('change', filterKendaraan);
-
-    // Run filters on load
-    filterKategori();
-    filterKendaraan();
-
-    document.getElementById('transaksiForm').addEventListener('submit', function(e) {
-        const nominal = document.getElementById('nominal').value;
-        if (nominal <= 0) {
-            e.preventDefault();
-            alert('Nominal harus lebih besar dari 0!');
-            return false;
-        }
-    });
-    </script>
 </body>
 
 </html>

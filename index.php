@@ -245,10 +245,14 @@ $saldo = $total_pemasukan - $total_pengeluaran;
                             <i class="bi bi-house-door"></i> Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="CRUD/create.php">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                             <i class="bi bi-plus-circle"></i> Tambah Transaksi
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="CRUD/create_pemasukan.php">Tambah Pemasukan</a></li>
+                            <li><a class="dropdown-item" href="CRUD/create_pengeluaran.php">Tambah Pengeluaran</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="CRUD/lihat.php">
@@ -267,6 +271,19 @@ $saldo = $total_pemasukan - $total_pengeluaran;
                                         class="bi bi-calendar-week"></i> Laporan Mingguan</a></li>
                             <li><a class="dropdown-item" href="laporan/laporan_bulanan.php"><i
                                         class="bi bi-calendar-month"></i> Laporan Bulanan</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-database"></i> Master Data
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="CRUD/kategori/index.php"><i class="bi bi-tags"></i>
+                                    Kategori</a></li>
+                            <li><a class="dropdown-item" href="CRUD/pelanggan/index.php"><i class="bi bi-people"></i>
+                                    Pelanggan</a></li>
+                            <li><a class="dropdown-item" href="CRUD/sparepart/index.php"><i class="bi bi-gear"></i>
+                                    Sparepart</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
@@ -292,10 +309,10 @@ $saldo = $total_pemasukan - $total_pengeluaran;
             </h1>
             <p class="welcome-subtitle">Selamat datang di sistem manajemen keuangan Bengkel Biyai Racing Shop</p>
             <div class="quick-actions">
-                <a href="CRUD/create.php" class="btn btn-success-custom btn-action">
+                <a href="CRUD/create_pemasukan.php" class="btn btn-success-custom btn-action">
                     <i class="bi bi-plus-circle"></i> Tambah Pemasukan
                 </a>
-                <a href="CRUD/create.php" class="btn btn-danger-custom btn-action">
+                <a href="CRUD/create_pengeluaran.php" class="btn btn-danger-custom btn-action">
                     <i class="bi bi-dash-circle"></i> Tambah Pengeluaran
                 </a>
                 <a href="CRUD/lihat.php" class="btn btn-primary-custom btn-action">
@@ -372,7 +389,8 @@ $saldo = $total_pemasukan - $total_pengeluaran;
                                     ?>
                                 </td>
                                 <td>
-                                    <div class="detail-text" title="<?php echo htmlspecialchars($row['keterangan']); ?>">
+                                    <div class="detail-text"
+                                        title="<?php echo htmlspecialchars($row['keterangan']); ?>">
                                         <?php 
                                         if (!empty($row['nama_pelanggan'])) {
                                             echo "<strong>" . htmlspecialchars($row['nama_pelanggan']) . "</strong>";
@@ -389,7 +407,8 @@ $saldo = $total_pemasukan - $total_pengeluaran;
                                         <?php echo ucfirst($row['jenis']); ?>
                                     </span>
                                 </td>
-                                <td class="fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">
+                                <td
+                                    class="fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">
                                     Rp <?php echo number_format($row['jumlah'], 0, ',', '.'); ?>
                                 </td>
                                 <td>

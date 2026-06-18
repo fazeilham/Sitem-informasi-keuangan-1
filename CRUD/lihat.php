@@ -13,12 +13,7 @@ $success_msg = isset($_GET['success']) ? $_GET['success'] : '';
 $error_msg = isset($_GET['error']) ? $_GET['error'] : '';
 
 // Query untuk mendapatkan semua transaksi
-$query = "SELECT t.*, k.nama as nama_kategori, p.nama as nama_pelanggan, v.no_plat 
-          FROM transaksi t 
-          LEFT JOIN kategori k ON t.kategori_id = k.id 
-          LEFT JOIN pelanggan p ON t.pelanggan_id = p.id 
-          LEFT JOIN kendaraan v ON t.kendaraan_id = v.id 
-          ORDER BY t.tanggal DESC, t.created_at DESC";
+$query = "SELECT * FROM transaksi ORDER BY tanggal DESC, created_at DESC";
 $result = mysqli_query($koneksi, $query);
 
 // Query untuk statistik
@@ -266,10 +261,14 @@ $total_transaksi = mysqli_num_rows($result);
                             <i class="bi bi-house-door"></i> Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="create.php">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                             <i class="bi bi-plus-circle"></i> Tambah Transaksi
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="create_pemasukan.php">Tambah Pemasukan</a></li>
+                            <li><a class="dropdown-item" href="create_pengeluaran.php">Tambah Pengeluaran</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="lihat.php">
@@ -328,9 +327,14 @@ $total_transaksi = mysqli_num_rows($result);
             </h1>
             <p class="text-muted mb-3">Daftar lengkap semua transaksi keuangan Bengkel Biyai Racing Shop</p>
             <div class="export-buttons">
-                <a href="create.php" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Tambah Transaksi Baru
-                </a>
+                <div class="btn-group">
+                    <a href="create_pemasukan.php" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Tambah Pemasukan
+                    </a>
+                    <a href="create_pengeluaran.php" class="btn btn-danger">
+                        <i class="bi bi-dash-circle"></i> Tambah Pengeluaran
+                    </a>
+                </div>
                 <a href="../index.php" class="btn btn-primary">
                     <i class="bi bi-arrow-left"></i> Kembali ke Dashboard
                 </a>
@@ -425,22 +429,12 @@ $total_transaksi = mysqli_num_rows($result);
                                 </td>
                                 <td>
                                     <strong>
-                                        <?php 
-                                        $kategori_display = !empty($row['nama_kategori']) ? $row['nama_kategori'] : $row['kategori'];
-                                        echo htmlspecialchars($kategori_display); 
-                                        ?>
+                                        <?php echo htmlspecialchars($row['kategori']); ?>
                                     </strong>
                                 </td>
                                 <td>
                                     <div class="detail-text-full">
-                                        <?php 
-                                        if (!empty($row['nama_pelanggan'])) {
-                                            echo "<strong>" . htmlspecialchars($row['nama_pelanggan']) . "</strong>";
-                                            if (!empty($row['no_plat'])) echo " (" . htmlspecialchars($row['no_plat']) . ")";
-                                            echo "<br>";
-                                        }
-                                        echo htmlspecialchars($unit_keterangan); 
-                                        ?>
+                                        <?php echo htmlspecialchars($unit_keterangan); ?>
                                     </div>
                                 </td>
                                 <td>
@@ -480,9 +474,14 @@ $total_transaksi = mysqli_num_rows($result);
                                     <i class="bi bi-inbox"></i>
                                     <h4 class="mt-3 text-muted">Belum Ada Transaksi</h4>
                                     <p class="text-muted">Mulai dengan menambahkan transaksi pertama Anda!</p>
-                                    <a href="create.php" class="btn btn-primary btn-lg mt-3">
-                                        <i class="bi bi-plus-circle"></i> Tambah Transaksi Pertama
-                                    </a>
+                                    <div class="btn-group">
+                                        <a href="create_pemasukan.php" class="btn btn-success btn-lg mt-3">
+                                            <i class="bi bi-plus-circle"></i> Tambah Pemasukan Pertama
+                                        </a>
+                                        <a href="create_pengeluaran.php" class="btn btn-danger btn-lg mt-3">
+                                            <i class="bi bi-dash-circle"></i> Tambah Pengeluaran Pertama
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             <?php
