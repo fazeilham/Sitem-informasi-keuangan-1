@@ -54,7 +54,7 @@ $pelanggan = mysqli_query($koneksi, "SELECT * FROM pelanggan ORDER BY nama");
                     <tr>
                         <td><?= $no++ ?></td>
                         <td><?= htmlspecialchars($row['nama']) ?></td>
-                        <td><?= htmlspecialchars($row['telepon'] ?? '-') ?></td>
+                        <td><?= htmlspecialchars($row['no_hp'] ?? '-') ?></td>
                         <td><?= htmlspecialchars($row['alamat'] ?? '-') ?></td>
                         <td>
                             <a href="kendaraan.php?pelanggan_id=<?= $row['id'] ?>" class="btn btn-info btn-sm text-white"><i class="bi bi-truck"></i> Kendaraan</a>

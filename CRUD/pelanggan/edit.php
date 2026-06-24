@@ -9,12 +9,12 @@ if (!$data) { header("Location: index.php"); exit(); }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama    = mysqli_real_escape_string($koneksi, trim($_POST['nama']));
-    $telepon = mysqli_real_escape_string($koneksi, trim($_POST['telepon']));
-    $alamat  = mysqli_real_escape_string($koneksi, trim($_POST['alamat']));
+    $nama  = mysqli_real_escape_string($koneksi, trim($_POST['nama']));
+    $no_hp = mysqli_real_escape_string($koneksi, trim($_POST['telepon']));
+    $alamat = mysqli_real_escape_string($koneksi, trim($_POST['alamat']));
     if ($nama === '') { $error = 'Nama tidak boleh kosong.'; }
     else {
-        mysqli_query($koneksi, "UPDATE pelanggan SET nama='$nama', telepon='$telepon', alamat='$alamat' WHERE id=$id");
+        mysqli_query($koneksi, "UPDATE pelanggan SET nama='$nama', no_hp='$no_hp', alamat='$alamat' WHERE id=$id");
         header("Location: index.php?msg=edit");
         exit();
     }
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="mb-3">
                         <label class="form-label">Telepon</label>
                         <input type="text" name="telepon" class="form-control"
-                            value="<?= htmlspecialchars($data['telepon'] ?? '') ?>">
+                            value="<?= htmlspecialchars($data['no_hp'] ?? '') ?>">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Alamat</label>
