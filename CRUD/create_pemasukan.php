@@ -2,6 +2,9 @@
 session_start();
 require_once '../DB/koneksi.php';
 
+// Ambil daftar kategori (hanya pemasukan)
+$kategori_result = mysqli_query($koneksi, "SELECT * FROM kategori WHERE jenis = 'pemasukan' ORDER BY nama");
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit();
@@ -13,7 +16,7 @@ $selected_tanggal = date('Y-m-d');
 $selected_pelanggan = '';
 $selected_kendaraan = '';
 $selected_sparepart = '';
-$selected_kategori = '';
+$selected_kategori_id = '';
 $selected_metode_pembayaran = '';
 $selected_qty = '';
 $selected_harga_satuan = '';
@@ -26,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $pelanggan = mysqli_real_escape_string($koneksi, $_POST['pelanggan']);
     $kendaraan = mysqli_real_escape_string($koneksi, $_POST['kendaraan']);
     $sparepart = mysqli_real_escape_string($koneksi, $_POST['sparepart']);
-    $kategori = mysqli_real_escape_string($koneksi, $_POST['kategori']);
+    $kategori_id = isset($_POST['kategori_id']) ? intval($_POST['kategori_id']) : 0;
     $metode_pembayaran = mysqli_real_escape_string($koneksi, $_POST['metode_pembayaran']);
     $qty = isset($_POST['qty']) ? intval($_POST['qty']) : 0;
     $harga_satuan = isset($_POST['harga_satuan']) ? mysqli_real_escape_string($koneksi, $_POST['harga_satuan']) : '0';
@@ -39,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $selected_pelanggan = $pelanggan;
     $selected_kendaraan = $kendaraan;
     $selected_sparepart = $sparepart;
-    $selected_kategori = $kategori;
+    $selected_kategori_id = $kategori_id;
     $selected_metode_pembayaran = $metode_pembayaran;
     $selected_qty = $qty;
     $selected_harga_satuan = $harga_satuan;
@@ -47,24 +50,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $selected_jasa_detail = $jasa_detail;
     $selected_nominal = $nominal;
 
-    if (empty($tanggal) || empty($kategori) || empty($nominal)) {
+    if (empty($tanggal) || empty($kategori_id) || empty($nominal)) {
         $error = "Tanggal, Kategori, dan Nominal wajib diisi!";
     } else {
-        $keterangan_full = "Kategori: " . $kategori;
+        // Ambil nama kategori untuk keterangan
+        $kategori_name = '';
+        $kq = mysqli_query($koneksi, "SELECT nama FROM kategori WHERE id = '$kategori_id' LIMIT 1");
+        if ($kq && $kr = mysqli_fetch_assoc($kq)) {
+            $kategori_name = $kr['nama'];
+        }
+
+        $keterangan_full = "Kategori: " . $kategori_name;
         if (!empty($pelanggan)) $keterangan_full .= " | Pelanggan: " . $pelanggan;
         if (!empty($kendaraan)) $keterangan_full .= " | Kendaraan: " . $kendaraan;
         if (!empty($sparepart)) $keterangan_full .= " | Sparepart: " . $sparepart;
         if (!empty($jasa_detail)) $keterangan_full .= " | Jasa: " . $jasa_detail;
         if (!empty($metode_pembayaran)) $keterangan_full .= " | Metode: " . $metode_pembayaran;
 
-        $query = "INSERT INTO transaksi (tanggal, jenis, kategori, keterangan, unit_keterangan, jasa_detail, barang_sparepart, jumlah, user_id) 
-                  VALUES ('$tanggal', 'pemasukan', '$kategori', '$keterangan_full', '$kendaraan', '$jasa_detail', '$sparepart', '$nominal', '$user_id')";
+        $query = "INSERT INTO transaksi (tanggal, jenis, kategori_id, keterangan, unit_keterangan, jasa_detail, barang_sparepart, jumlah, user_id) 
+              VALUES ('$tanggal', 'pemasukan', $kategori_id, '$keterangan_full', '$kendaraan', '$jasa_detail', '$sparepart', '$nominal', '$user_id')";
 
         if (mysqli_query($koneksi, $query)) {
             $success = "Data pemasukan berhasil ditambahkan!";
             $selected_tanggal = date('Y-m-d');
             $selected_pelanggan = ''; $selected_kendaraan = ''; $selected_sparepart = '';
-            $selected_kategori = ''; $selected_metode_pembayaran = '';
+            $selected_kategori_id = ''; $selected_metode_pembayaran = '';
             $selected_qty = ''; $selected_harga_satuan = ''; $selected_subtotal = '';
             $selected_jasa_detail = ''; $selected_nominal = '';
             header("refresh:2;url=create_pemasukan.php");
@@ -76,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -214,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
     </style>
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
@@ -245,13 +257,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="laporanDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="laporanDropdown" role="button"
+                            data-bs-toggle="dropdown">
                             <i class="bi bi-file-earmark-text"></i> Laporan
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="../laporan/laporan_harian.php"><i class="bi bi-calendar-day"></i> Laporan Harian</a></li>
-                            <li><a class="dropdown-item" href="../laporan/laporan_mingguan.php"><i class="bi bi-calendar-week"></i> Laporan Mingguan</a></li>
-                            <li><a class="dropdown-item" href="../laporan/laporan_bulanan.php"><i class="bi bi-calendar-month"></i> Laporan Bulanan</a></li>
+                            <li><a class="dropdown-item" href="../laporan/laporan_harian.php"><i
+                                        class="bi bi-calendar-day"></i> Laporan Harian</a></li>
+                            <li><a class="dropdown-item" href="../laporan/laporan_mingguan.php"><i
+                                        class="bi bi-calendar-week"></i> Laporan Mingguan</a></li>
+                            <li><a class="dropdown-item" href="../laporan/laporan_bulanan.php"><i
+                                        class="bi bi-calendar-month"></i> Laporan Bulanan</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -259,9 +275,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <i class="bi bi-database"></i> Master Data
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="kategori/index.php"><i class="bi bi-tags"></i> Kategori</a></li>
-                            <li><a class="dropdown-item" href="pelanggan/index.php"><i class="bi bi-people"></i> Pelanggan</a></li>
-                            <li><a class="dropdown-item" href="sparepart/index.php"><i class="bi bi-gear"></i> Sparepart</a></li>
+                            <li><a class="dropdown-item" href="kategori/index.php"><i class="bi bi-tags"></i>
+                                    Kategori</a></li>
+                            <li><a class="dropdown-item" href="pelanggan/index.php"><i class="bi bi-people"></i>
+                                    Pelanggan</a></li>
+                            <li><a class="dropdown-item" href="sparepart/index.php"><i class="bi bi-gear"></i>
+                                    Sparepart</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
@@ -302,20 +321,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <form method="POST" action="">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="tanggal" class="form-label">Tanggal Transaksi <span class="required">*</span></label>
+                        <label for="tanggal" class="form-label">Tanggal Transaksi <span
+                                class="required">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
-                            <input type="date" class="form-control with-icon" id="tanggal" name="tanggal" value="<?php echo htmlspecialchars($selected_tanggal); ?>" required>
+                            <input type="date" class="form-control with-icon" id="tanggal" name="tanggal"
+                                value="<?php echo htmlspecialchars($selected_tanggal); ?>" required>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label for="metode_pembayaran" class="form-label">Metode Pembayaran <span class="required">*</span></label>
+                        <label for="metode_pembayaran" class="form-label">Metode Pembayaran <span
+                                class="required">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-wallet2"></i></span>
-                            <select class="form-select with-icon" id="metode_pembayaran" name="metode_pembayaran" required>
+                            <select class="form-select with-icon" id="metode_pembayaran" name="metode_pembayaran"
+                                required>
                                 <option value="">-- Pilih Metode --</option>
-                                <option value="Cash" <?php echo $selected_metode_pembayaran == 'Cash' ? 'selected' : ''; ?>>Cash</option>
-                                <option value="Transfer" <?php echo $selected_metode_pembayaran == 'Transfer' ? 'selected' : ''; ?>>Transfer</option>
+                                <option value="Cash"
+                                    <?php echo $selected_metode_pembayaran == 'Cash' ? 'selected' : ''; ?>>Cash</option>
+                                <option value="Transfer"
+                                    <?php echo $selected_metode_pembayaran == 'Transfer' ? 'selected' : ''; ?>>Transfer
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -326,45 +352,62 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <label for="pelanggan" class="form-label">Pelanggan</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-people"></i></span>
-                            <input type="text" class="form-control with-icon" id="pelanggan" name="pelanggan" value="<?php echo htmlspecialchars($selected_pelanggan); ?>" placeholder="Nama Pelanggan">
+                            <input type="text" class="form-control with-icon" id="pelanggan" name="pelanggan"
+                                value="<?php echo htmlspecialchars($selected_pelanggan); ?>"
+                                placeholder="Nama Pelanggan">
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="kendaraan" class="form-label">Kendaraan</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-car-front"></i></span>
-                            <input type="text" class="form-control with-icon" id="kendaraan" name="kendaraan" value="<?php echo htmlspecialchars($selected_kendaraan); ?>" placeholder="No. Plat / Merek">
+                            <input type="text" class="form-control with-icon" id="kendaraan" name="kendaraan"
+                                value="<?php echo htmlspecialchars($selected_kendaraan); ?>"
+                                placeholder="No. Plat / Merek">
                         </div>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="kategori" class="form-label">Kategori Transaksi <span class="required">*</span></label>
+                        <label for="kategori_id" class="form-label">Kategori Transaksi <span
+                                class="required">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-tags"></i></span>
-                            <input type="text" class="form-control with-icon" id="kategori" name="kategori" value="<?php echo htmlspecialchars($selected_kategori); ?>" placeholder="Contoh: Service, Penjualan Sparepart" required>
+                            <select class="form-select with-icon" id="kategori_id" name="kategori_id" required>
+                                <option value="">-- Pilih Kategori --</option>
+                                <?php if ($kategori_result): while ($k = mysqli_fetch_assoc($kategori_result)): ?>
+                                <option value="<?php echo $k['id']; ?>"
+                                    <?php echo $selected_kategori_id == $k['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($k['nama']); ?></option>
+                                <?php endwhile; endif; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="sparepart" class="form-label">Sparepart</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-box-seam"></i></span>
-                            <input type="text" class="form-control with-icon" id="sparepart" name="sparepart" value="<?php echo htmlspecialchars($selected_sparepart); ?>" placeholder="Nama Sparepart">
+                            <input type="text" class="form-control with-icon" id="sparepart" name="sparepart"
+                                value="<?php echo htmlspecialchars($selected_sparepart); ?>"
+                                placeholder="Nama Sparepart">
                         </div>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="jasa_detail" class="form-label"><i class="bi bi-tools"></i> Jasa dan Detail Pengerjaan</label>
-                    <textarea class="form-control" id="jasa_detail" name="jasa_detail" rows="3" placeholder="Contoh: Service berkala, Ganti oli, Tune up mesin"><?php echo htmlspecialchars($selected_jasa_detail); ?></textarea>
+                    <label for="jasa_detail" class="form-label"><i class="bi bi-tools"></i> Jasa dan Detail
+                        Pengerjaan</label>
+                    <textarea class="form-control" id="jasa_detail" name="jasa_detail" rows="3"
+                        placeholder="Contoh: Service berkala, Ganti oli, Tune up mesin"><?php echo htmlspecialchars($selected_jasa_detail); ?></textarea>
                 </div>
 
                 <div class="mb-4">
                     <label for="nominal" class="form-label">Nominal (Total) <span class="required">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-currency-exchange"></i> Rp</span>
-                        <input type="number" class="form-control" id="nominal" name="nominal" placeholder="0" min="0" step="0.01" value="<?php echo htmlspecialchars($selected_nominal); ?>" required>
+                        <input type="number" class="form-control" id="nominal" name="nominal" placeholder="0" min="0"
+                            step="0.01" value="<?php echo htmlspecialchars($selected_nominal); ?>" required>
                     </div>
                 </div>
 
@@ -382,4 +425,5 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

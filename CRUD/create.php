@@ -10,179 +10,46 @@ if (!isset($_SESSION['user_id'])) {
 
 $success = '';
 $error = '';
-$selected_tanggal = date('Y-m-d');
-$selected_jenis = '';
-$selected_kategori = '';
-$selected_pelanggan = '';
-$selected_kendaraan = '';
-$selected_sparepart = '';
-$selected_qty = '';
-$selected_harga_satuan = '';
-$selected_subtotal = '';
-$selected_jasa_detail = '';
-$selected_nominal = '';
-
-// Query master data dengan error handling
-$kategori_list = array();
-$result_kategori = @mysqli_query($koneksi, "SELECT id, nama, jenis FROM kategori ORDER BY nama");
-if ($result_kategori) {
-    while ($row = mysqli_fetch_assoc($result_kategori)) {
-        $kategori_list[] = $row;
-    }
-}
-
-$pelanggan_list = array();
-$result_pelanggan = @mysqli_query($koneksi, "SELECT id, nama FROM pelanggan ORDER BY nama");
-if ($result_pelanggan) {
-    while ($row = mysqli_fetch_assoc($result_pelanggan)) {
-        $pelanggan_list[] = $row;
-    }
-}
-
-$kendaraan_list = array();
-$result_kendaraan = @mysqli_query($koneksi, "SELECT k.id, k.no_plat, k.merek, k.pelanggan_id, p.nama AS pelanggan_nama FROM kendaraan k LEFT JOIN pelanggan p ON k.pelanggan_id = p.id ORDER BY p.nama, k.no_plat");
-if ($result_kendaraan) {
-    while ($row = mysqli_fetch_assoc($result_kendaraan)) {
-        $kendaraan_list[] = $row;
-    }
-}
-
-$sparepart_list = array();
-$result_sparepart = @mysqli_query($koneksi, "SELECT id, nama, satuan, harga_jual FROM sparepart ORDER BY nama");
-if ($result_sparepart) {
-    while ($row = mysqli_fetch_assoc($result_sparepart)) {
-        $sparepart_list[] = $row;
-    }
-}
-
-if (count($kategori_list) == 0 && count($pelanggan_list) == 0) {
-    $error = "Catatan: Tabel master data tidak tersedia. Jalankan setup.php terlebih dahulu untuk membuat tabel kategori, pelanggan, kendaraan, dan sparepart.";
-}
 
 // Proses form submit
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $tanggal = mysqli_real_escape_string($koneksi, $_POST['tanggal']);
     $jenis = mysqli_real_escape_string($koneksi, $_POST['jenis']);
-    $kategori_id = isset($_POST['kategori_id']) ? intval($_POST['kategori_id']) : 0;
-    $pelanggan_id = isset($_POST['pelanggan_id']) ? intval($_POST['pelanggan_id']) : 0;
-    $kendaraan_id = isset($_POST['kendaraan_id']) ? intval($_POST['kendaraan_id']) : 0;
-    $sparepart_id = isset($_POST['sparepart_id']) ? intval($_POST['sparepart_id']) : 0;
-    $qty = isset($_POST['qty']) ? intval($_POST['qty']) : 0;
-    $harga_satuan = isset($_POST['harga_satuan']) ? mysqli_real_escape_string($koneksi, $_POST['harga_satuan']) : '0';
-    $subtotal = isset($_POST['subtotal']) ? mysqli_real_escape_string($koneksi, $_POST['subtotal']) : '0';
-    $jasa_detail = isset($_POST['jasa_detail']) ? mysqli_real_escape_string($koneksi, $_POST['jasa_detail']) : '';
-    $nominal = isset($_POST['nominal']) ? mysqli_real_escape_string($koneksi, $_POST['nominal']) : '0';
+    $kategori = mysqli_real_escape_string($koneksi, $_POST['kategori']);
+    $unit_keterangan = mysqli_real_escape_string($koneksi, $_POST['unit_keterangan']);
+    $jasa_detail = mysqli_real_escape_string($koneksi, $_POST['jasa_detail']);
+    $barang_sparepart = mysqli_real_escape_string($koneksi, $_POST['barang_sparepart']);
+    $nominal = mysqli_real_escape_string($koneksi, $_POST['nominal']);
     $user_id = $_SESSION['user_id'];
-
-    $selected_tanggal = $tanggal;
-    $selected_jenis = $jenis;
-    $selected_kategori = $kategori_id;
-    $selected_pelanggan = $pelanggan_id;
-    $selected_kendaraan = $kendaraan_id;
-    $selected_sparepart = $sparepart_id;
-    $selected_qty = $qty;
-    $selected_harga_satuan = $harga_satuan;
-    $selected_subtotal = $subtotal;
-    $selected_jasa_detail = $jasa_detail;
-    $selected_nominal = $nominal;
     
-    // Validasi dasar
-    if (empty($tanggal) || empty($jenis) || empty($kategori_id) || empty($nominal)) {
-        $error = "Tanggal, Jenis, Kategori, dan Nominal wajib diisi!";
-    } elseif ($jenis == 'pemasukan' && (empty($pelanggan_id) || empty($kendaraan_id))) {
-        $error = "Untuk pemasukan bengkel, Pelanggan dan Kendaraan wajib diisi!";
-    } elseif (!empty($sparepart_id) && $qty <= 0) {
-        $error = "Jumlah sparepart harus lebih besar dari 0!";
+    // Validasi
+    if (empty($tanggal) || empty($jenis) || empty($kategori) || empty($nominal)) {
+        $error = "Field yang wajib diisi tidak boleh kosong!";
     } else {
-        // Ambil data master untuk denormalisasi (optional, tapi bagus untuk histori)
-        $kategori_name = '';
-        $result_kategori = mysqli_query($koneksi, "SELECT nama FROM kategori WHERE id = $kategori_id LIMIT 1");
-        if ($result_kategori && mysqli_num_rows($result_kategori) > 0) {
-            $kategori_name = mysqli_fetch_assoc($result_kategori)['nama'];
+        // Cek apakah kolom baru sudah ada, jika belum tambahkan
+        $check_columns = mysqli_query($koneksi, "SHOW COLUMNS FROM transaksi LIKE 'unit_keterangan'");
+        if (mysqli_num_rows($check_columns) == 0) {
+            // Tambahkan kolom baru
+            mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN unit_keterangan VARCHAR(255) AFTER kategori");
+            mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN jasa_detail TEXT AFTER unit_keterangan");
+            mysqli_query($koneksi, "ALTER TABLE transaksi ADD COLUMN barang_sparepart TEXT AFTER jasa_detail");
         }
-
-        $pelanggan_name = '';
-        if ($pelanggan_id > 0) {
-            $result_pelanggan = mysqli_query($koneksi, "SELECT nama FROM pelanggan WHERE id = $pelanggan_id LIMIT 1");
-            if ($result_pelanggan && mysqli_num_rows($result_pelanggan) > 0) {
-                $pelanggan_name = mysqli_fetch_assoc($result_pelanggan)['nama'];
-            }
-        }
-
-        $kendaraan_name = '';
-        if ($kendaraan_id > 0) {
-            $result_kendaraan = mysqli_query($koneksi, "SELECT no_plat, merek FROM kendaraan WHERE id = $kendaraan_id LIMIT 1");
-            if ($result_kendaraan && mysqli_num_rows($result_kendaraan) > 0) {
-                $kendaraan_row = mysqli_fetch_assoc($result_kendaraan);
-                $kendaraan_name = $kendaraan_row['no_plat'] . ' / ' . $kendaraan_row['merek'];
-            }
-        }
-
-        $sparepart_name = '';
-        if ($sparepart_id > 0) {
-            $result_sparepart = mysqli_query($koneksi, "SELECT nama FROM sparepart WHERE id = $sparepart_id LIMIT 1");
-            if ($result_sparepart && mysqli_num_rows($result_sparepart) > 0) {
-                $sparepart_name = mysqli_fetch_assoc($result_sparepart)['nama'];
-            }
-        }
-
-        $unit_keterangan = $kendaraan_name;
-        $keterangan_full = "Kategori: " . $kategori_name;
-        if (!empty($pelanggan_name)) $keterangan_full .= " | Pelanggan: " . $pelanggan_name;
-        if (!empty($kendaraan_name)) $keterangan_full .= " | Kendaraan: " . $kendaraan_name;
         
-        $barang_sparepart = '';
-        if (!empty($sparepart_name) && $qty > 0) {
-            $barang_sparepart = $sparepart_name . " x " . $qty;
-            $keterangan_full .= " | Sparepart: " . $barang_sparepart;
-        }
+        // Gabungkan keterangan untuk field keterangan lama (backward compatibility)
+        $keterangan_full = "Unit/Keterangan: " . $unit_keterangan;
         if (!empty($jasa_detail)) {
             $keterangan_full .= " | Jasa: " . $jasa_detail;
         }
-
-        // Simpan ke tabel transaksi (Master)
-        $query = "INSERT INTO transaksi (tanggal, jenis, kategori, keterangan, unit_keterangan, jasa_detail, barang_sparepart, jumlah, user_id, kategori_id, pelanggan_id, kendaraan_id) 
-                  VALUES ('$tanggal', '$jenis', '$kategori_name', '$keterangan_full', '$unit_keterangan', '$jasa_detail', '$barang_sparepart', '$nominal', '$user_id', '$kategori_id', " . ($pelanggan_id > 0 ? $pelanggan_id : "NULL") . ", " . ($kendaraan_id > 0 ? $kendaraan_id : "NULL") . ")";
-
+        if (!empty($barang_sparepart)) {
+            $keterangan_full .= " | Sparepart: " . $barang_sparepart;
+        }
+        
+        $query = "INSERT INTO transaksi (tanggal, jenis, kategori, keterangan, unit_keterangan, jasa_detail, barang_sparepart, jumlah, user_id) 
+                  VALUES ('$tanggal', '$jenis', '$kategori', '$keterangan_full', '$unit_keterangan', '$jasa_detail', '$barang_sparepart', '$nominal', '$user_id')";
+        
         if (mysqli_query($koneksi, $query)) {
-            $transaksi_id = mysqli_insert_id($koneksi);
-            
-            // Simpan ke tabel detailtransaksi (Pecahan)
-            // 1. Jika ada sparepart
-            if ($sparepart_id > 0 && $qty > 0) {
-                $insert_sparepart = "INSERT INTO detailtransaksi (transaksi_id, kategori_id, sparepart_id, nama_item, qty, harga_satuan, subtotal) 
-                                    VALUES ($transaksi_id, $kategori_id, $sparepart_id, '$sparepart_name', '$qty', '$harga_satuan', '$subtotal')";
-                mysqli_query($koneksi, $insert_sparepart);
-                
-                // Update stok sparepart
-                if ($jenis == 'pemasukan') {
-                    mysqli_query($koneksi, "UPDATE sparepart SET stok = stok - $qty WHERE id = $sparepart_id");
-                } else {
-                    mysqli_query($koneksi, "UPDATE sparepart SET stok = stok + $qty WHERE id = $sparepart_id");
-                }
-            }
-            
-            // 2. Jika ada jasa detail, masukkan sebagai item detail juga jika belum ada sparepart atau sebagai tambahan
-            if (!empty($jasa_detail)) {
-                $jasa_nominal = $nominal;
-                if ($sparepart_id > 0 && $qty > 0) {
-                    $jasa_nominal = $nominal - $subtotal;
-                }
-                
-                if ($jasa_nominal > 0) {
-                    $insert_jasa = "INSERT INTO detailtransaksi (transaksi_id, kategori_id, nama_item, qty, harga_satuan, subtotal, keterangan) 
-                                    VALUES ($transaksi_id, $kategori_id, 'Jasa/Layanan', 1, '$jasa_nominal', '$jasa_nominal', '$jasa_detail')";
-                    mysqli_query($koneksi, $insert_jasa);
-                }
-            }
-
             $success = "Data transaksi berhasil ditambahkan!";
-            // Reset form
-            $selected_tanggal = date('Y-m-d');
-            $selected_jenis = ''; $selected_kategori = ''; $selected_pelanggan = ''; $selected_kendaraan = '';
-            $selected_sparepart = ''; $selected_qty = ''; $selected_harga_satuan = ''; $selected_subtotal = '';
-            $selected_jasa_detail = ''; $selected_nominal = '';
-            
+            // Reset form setelah 2 detik
             header("refresh:2;url=create.php");
         } else {
             $error = "Error: " . mysqli_error($koneksi);
@@ -200,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-.    :root {
+    :root {
         --primary-color: #dc3545;
         --secondary-color: #ffc107;
         --dark-color: #1a1a1a;
@@ -443,7 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <i class="bi bi-calendar3"></i>
                             </span>
                             <input type="date" class="form-control with-icon" id="tanggal" name="tanggal"
-                                value="<?php echo htmlspecialchars($selected_tanggal); ?>" required>
+                                value="<?php echo date('Y-m-d'); ?>" required>
                         </div>
                     </div>
 
@@ -458,11 +325,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </span>
                             <select class="form-select with-icon" id="jenis" name="jenis" required>
                                 <option value="">-- Pilih Jenis --</option>
-                                <option value="pemasukan"
-                                    <?php echo $selected_jenis == 'pemasukan' ? 'selected' : ''; ?>>Pemasukan</option>
-                                <option value="pengeluaran"
-                                    <?php echo $selected_jenis == 'pengeluaran' ? 'selected' : ''; ?>>Pengeluaran
-                                </option>
+                                <option value="pemasukan">Pemasukan</option>
+                                <option value="pengeluaran">Pengeluaran</option>
                             </select>
                         </div>
                     </div>
@@ -471,118 +335,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="row">
                     <!-- Kategori Transaksi -->
                     <div class="col-md-6 mb-3">
-                        <label for="kategori_id" class="form-label">
+                        <label for="kategori" class="form-label">
                             Kategori Transaksi <span class="required">*</span>
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
                                 <i class="bi bi-tags"></i>
                             </span>
-                            <select class="form-select with-icon" id="kategori_id" name="kategori_id" required>
-                                <option value="">-- Pilih Kategori --</option>
-                                <?php foreach ($kategori_list as $row): ?>
-                                <option value="<?php echo $row['id']; ?>" data-jenis="<?php echo $row['jenis']; ?>"
-                                    <?php echo $selected_kategori == $row['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($row['nama']); ?>
-                                    (<?php echo ucfirst($row['jenis']); ?>)
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <input type="text" class="form-control with-icon" id="kategori" name="kategori"
+                                placeholder="Contoh: Service Motor, Beli Sparepart, dll" required>
                         </div>
-                        <small class="text-muted">Pilih kategori transaksi yang sudah didefinisikan.</small>
+                        <small class="text-muted">Contoh: Service Motor, Beli Sparepart, Penjualan, dll</small>
                     </div>
 
-                    <!-- Pelanggan -->
+                    <!-- Unit / Keterangan -->
                     <div class="col-md-6 mb-3">
-                        <label for="pelanggan_id" class="form-label">
-                            Pelanggan <span class="required" id="req_pelanggan">*</span>
+                        <label for="unit_keterangan" class="form-label">
+                            Unit / Keterangan
                         </label>
                         <div class="input-group">
                             <span class="input-group-text">
-                                <i class="bi bi-people"></i>
+                                <i class="bi bi-bicycle"></i>
                             </span>
-                            <select class="form-select with-icon" id="pelanggan_id" name="pelanggan_id">
-                                <option value="">-- Pilih Pelanggan --</option>
-                                <?php foreach ($pelanggan_list as $row): ?>
-                                <option value="<?php echo $row['id']; ?>"
-                                    <?php echo $selected_pelanggan == $row['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($row['nama']); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <input type="text" class="form-control with-icon" id="unit_keterangan"
+                                name="unit_keterangan" placeholder="Contoh: Motor Honda CBR 150R, dll">
                         </div>
-                        <small class="text-muted">Pilih pelanggan (wajib untuk pemasukan).</small>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <!-- Kendaraan -->
-                    <div class="col-md-6 mb-3">
-                        <label for="kendaraan_id" class="form-label">
-                            Kendaraan <span class="required" id="req_kendaraan">*</span>
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-car-front"></i>
-                            </span>
-                            <select class="form-select with-icon" id="kendaraan_id" name="kendaraan_id">
-                                <option value="">-- Pilih Kendaraan --</option>
-                                <?php foreach ($kendaraan_list as $row): ?>
-                                <option value="<?php echo $row['id']; ?>"
-                                    data-pelanggan-id="<?php echo $row['pelanggan_id']; ?>"
-                                    <?php echo $selected_kendaraan == $row['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($row['no_plat'] . ' / ' . $row['merek'] . ' (' . $row['pelanggan_nama'] . ')'); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <small class="text-muted">Pilih kendaraan (wajib untuk pemasukan).</small>
-                    </div>
-
-                    <!-- Sparepart -->
-                    <div class="col-md-6 mb-3">
-                        <label for="sparepart_id" class="form-label">
-                            Sparepart</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-box-seam"></i>
-                            </span>
-                            <select class="form-select with-icon" id="sparepart_id" name="sparepart_id">
-                                <option value="">-- Pilih Sparepart --</option>
-                                <?php foreach ($sparepart_list as $row): ?>
-                                <option value="<?php echo $row['id']; ?>" data-price="<?php echo $row['harga_jual']; ?>"
-                                    <?php echo $selected_sparepart == $row['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($row['nama'] . ' (' . $row['satuan'] . ') - Rp ' . number_format($row['harga_jual'], 0, ',', '.')); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <small class="text-muted">Pilih sparepart yang digunakan (jika ada).</small>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="qty" class="form-label">Jumlah Sparepart</label>
-                        <input type="number" min="0" step="1" class="form-control" id="qty" name="qty"
-                            value="<?php echo htmlspecialchars($selected_qty); ?>" placeholder="0">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="harga_satuan" class="form-label">Harga Satuan</label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" min="0" step="0.01" class="form-control" id="harga_satuan"
-                                name="harga_satuan" value="<?php echo htmlspecialchars($selected_harga_satuan); ?>"
-                                placeholder="0.00">
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="subtotal" class="form-label">Subtotal Sparepart</label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" min="0" step="0.01" class="form-control" id="subtotal" name="subtotal"
-                                value="<?php echo htmlspecialchars($selected_subtotal); ?>" placeholder="0.00" readonly>
-                        </div>
+                        <small class="text-muted">Nama unit/kendaraan atau keterangan umum</small>
                     </div>
                 </div>
 
@@ -592,8 +370,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <i class="bi bi-tools"></i> Jasa dan Detail Pengerjaan
                     </label>
                     <textarea class="form-control" id="jasa_detail" name="jasa_detail" rows="3"
-                        placeholder="Contoh: Service berkala, Ganti oli, Tune up mesin, dll"><?php echo htmlspecialchars($selected_jasa_detail); ?></textarea>
-                    <small class="text-muted">Detail jasa yang dikerjakan atau diberikan.</small>
+                        placeholder="Contoh: Service berkala, Ganti oli, Tune up mesin, dll"></textarea>
+                    <small class="text-muted">Detail jasa yang dikerjakan atau diberikan</small>
+                </div>
+
+                <!-- Barang dan Harga Sparepart -->
+                <div class="mb-3">
+                    <label for="barang_sparepart" class="form-label">
+                        <i class="bi bi-box-seam"></i> Barang dan Harga Sparepart
+                    </label>
+                    <textarea class="form-control" id="barang_sparepart" name="barang_sparepart" rows="3"
+                        placeholder="Contoh: Oli mesin 1L x Rp 50.000, Filter udara x Rp 25.000, dll"></textarea>
+                    <small class="text-muted">Daftar sparepart yang digunakan beserta harganya</small>
                 </div>
 
                 <!-- Nominal (Total) -->
@@ -606,7 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <i class="bi bi-currency-exchange"></i> Rp
                         </span>
                         <input type="number" class="form-control" id="nominal" name="nominal" placeholder="0" min="0"
-                            step="0.01" value="<?php echo htmlspecialchars($selected_nominal); ?>" required>
+                            step="0.01" required>
                     </div>
                     <small class="text-muted">Masukkan total nominal transaksi</small>
                 </div>
@@ -626,98 +414,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    const nominalInput = document.getElementById('nominal');
-    const jenisSelect = document.getElementById('jenis');
-    const kategoriSelect = document.getElementById('kategori_id');
-    const pelangganSelect = document.getElementById('pelanggan_id');
-    const kendaraanSelect = document.getElementById('kendaraan_id');
-    const sparepartSelect = document.getElementById('sparepart_id');
-    const qtyInput = document.getElementById('qty');
-    const hargaSatuanInput = document.getElementById('harga_satuan');
-    const subtotalInput = document.getElementById('subtotal');
-
-    function filterKategori() {
-        const selectedJenis = jenisSelect.value;
-        Array.from(kategoriSelect.options).forEach(option => {
-            if (!option.value) {
-                option.hidden = false;
-                return;
-            }
-            option.hidden = selectedJenis && option.dataset.jenis !== selectedJenis;
-        });
-        if (kategoriSelect.value && kategoriSelect.selectedOptions[0].hidden) {
-            kategoriSelect.value = '';
-        }
-
-        // Toggle required for pelanggan and kendaraan
-        const isPemasukan = selectedJenis === 'pemasukan';
-        document.getElementById('req_pelanggan').style.display = isPemasukan ? 'inline' : 'none';
-        document.getElementById('req_kendaraan').style.display = isPemasukan ? 'inline' : 'none';
-        pelangganSelect.required = isPemasukan;
-        kendaraanSelect.required = isPemasukan;
-    }
-
-    function filterKendaraan() {
-        const selectedPelanggan = pelangganSelect.value;
-        Array.from(kendaraanSelect.options).forEach(option => {
-            if (!option.value) {
-                option.hidden = false;
-                return;
-            }
-            option.hidden = selectedPelanggan && option.dataset.pelangganId !== selectedPelanggan;
-        });
-        if (kendaraanSelect.value && kendaraanSelect.selectedOptions[0].hidden) {
-            kendaraanSelect.value = '';
-        }
-    }
-
-    function updateSubtotal() {
-        const qty = parseFloat(qtyInput.value) || 0;
-        const harga = parseFloat(hargaSatuanInput.value) || 0;
-        const subtotal = qty * harga;
-        subtotalInput.value = subtotal.toFixed(2);
-        
-        // Auto update nominal if it's 0 or matches previous subtotal
-        const currentNominal = parseFloat(nominalInput.value) || 0;
-        if (currentNominal === 0) {
-            nominalInput.value = subtotal.toFixed(2);
-        }
-    }
-
-    function updateHargaSatuan() {
-        const selectedOption = sparepartSelect.selectedOptions[0];
-        if (selectedOption && selectedOption.dataset.price) {
-            hargaSatuanInput.value = selectedOption.dataset.price;
-        } else {
-            hargaSatuanInput.value = '';
-        }
-        updateSubtotal();
-    }
-
-    nominalInput.addEventListener('input', function(e) {
+    // Format nominal saat input
+    document.getElementById('nominal').addEventListener('input', function(e) {
         let value = e.target.value;
+        // Hapus karakter selain angka dan titik
         value = value.replace(/[^\d.]/g, '');
         e.target.value = value;
     });
 
-    jenisSelect.addEventListener('change', filterKategori);
-    pelangganSelect.addEventListener('change', filterKendaraan);
-    sparepartSelect.addEventListener('change', updateHargaSatuan);
-    qtyInput.addEventListener('input', updateSubtotal);
-    hargaSatuanInput.addEventListener('input', updateSubtotal);
-
+    // Validasi form sebelum submit
     document.getElementById('transaksiForm').addEventListener('submit', function(e) {
-        const nominal = parseFloat(nominalInput.value) || 0;
+        const nominal = document.getElementById('nominal').value;
         if (nominal <= 0) {
             e.preventDefault();
             alert('Nominal harus lebih besar dari 0!');
             return false;
         }
     });
-
-    filterKategori();
-    filterKendaraan();
-    updateSubtotal();
     </script>
 </body>
 

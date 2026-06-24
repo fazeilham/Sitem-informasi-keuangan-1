@@ -2,6 +2,9 @@
 session_start();
 require_once '../DB/koneksi.php';
 
+// Ambil daftar kategori (hanya pengeluaran)
+$kategori_result = mysqli_query($koneksi, "SELECT * FROM kategori WHERE jenis = 'pengeluaran' ORDER BY nama");
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login.php");
     exit();
@@ -13,7 +16,7 @@ $selected_tanggal = date('Y-m-d');
 $selected_pelanggan = '';
 $selected_kendaraan = '';
 $selected_sparepart = '';
-$selected_kategori = '';
+$selected_kategori_id = '';
 $selected_metode_pembayaran = '';
 $selected_jasa_detail = '';
 $selected_nominal = '';
@@ -23,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $pelanggan = mysqli_real_escape_string($koneksi, $_POST['pelanggan']);
     $kendaraan = mysqli_real_escape_string($koneksi, $_POST['kendaraan']);
     $sparepart = mysqli_real_escape_string($koneksi, $_POST['sparepart']);
-    $kategori = mysqli_real_escape_string($koneksi, $_POST['kategori']);
+    $kategori_id = isset($_POST['kategori_id']) ? intval($_POST['kategori_id']) : 0;
     $metode_pembayaran = mysqli_real_escape_string($koneksi, $_POST['metode_pembayaran']);
     $jasa_detail = isset($_POST['jasa_detail']) ? mysqli_real_escape_string($koneksi, $_POST['jasa_detail']) : '';
     $nominal = isset($_POST['nominal']) ? mysqli_real_escape_string($koneksi, $_POST['nominal']) : '0';
@@ -33,29 +36,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $selected_pelanggan = $pelanggan;
     $selected_kendaraan = $kendaraan;
     $selected_sparepart = $sparepart;
-    $selected_kategori = $kategori;
+    $selected_kategori_id = $kategori_id;
     $selected_metode_pembayaran = $metode_pembayaran;
     $selected_jasa_detail = $jasa_detail;
     $selected_nominal = $nominal;
 
-    if (empty($tanggal) || empty($kategori) || empty($nominal)) {
+    if (empty($tanggal) || empty($kategori_id) || empty($nominal)) {
         $error = "Tanggal, Kategori, dan Nominal wajib diisi!";
     } else {
-        $keterangan_full = "Kategori: " . $kategori;
+        // Ambil nama kategori untuk keterangan
+        $kategori_name = '';
+        $kq = mysqli_query($koneksi, "SELECT nama FROM kategori WHERE id = '$kategori_id' LIMIT 1");
+        if ($kq && $kr = mysqli_fetch_assoc($kq)) {
+            $kategori_name = $kr['nama'];
+        }
+
+        $keterangan_full = "Kategori: " . $kategori_name;
         if (!empty($pelanggan)) $keterangan_full .= " | Pelanggan: " . $pelanggan;
         if (!empty($kendaraan)) $keterangan_full .= " | Kendaraan: " . $kendaraan;
         if (!empty($sparepart)) $keterangan_full .= " | Sparepart: " . $sparepart;
         if (!empty($jasa_detail)) $keterangan_full .= " | Keterangan: " . $jasa_detail;
         if (!empty($metode_pembayaran)) $keterangan_full .= " | Metode: " . $metode_pembayaran;
 
-        $query = "INSERT INTO transaksi (tanggal, jenis, kategori, keterangan, unit_keterangan, jasa_detail, barang_sparepart, jumlah, user_id) 
-                  VALUES ('$tanggal', 'pengeluaran', '$kategori', '$keterangan_full', '$kendaraan', '$jasa_detail', '$sparepart', '$nominal', '$user_id')";
+        $query = "INSERT INTO transaksi (tanggal, jenis, kategori_id, keterangan, unit_keterangan, jasa_detail, barang_sparepart, jumlah, user_id) 
+              VALUES ('$tanggal', 'pengeluaran', $kategori_id, '$keterangan_full', '$kendaraan', '$jasa_detail', '$sparepart', '$nominal', '$user_id')";
 
         if (mysqli_query($koneksi, $query)) {
             $success = "Data pengeluaran berhasil ditambahkan!";
             $selected_tanggal = date('Y-m-d');
             $selected_pelanggan = ''; $selected_kendaraan = ''; $selected_sparepart = '';
-            $selected_kategori = ''; $selected_metode_pembayaran = '';
+            $selected_kategori_id = ''; $selected_metode_pembayaran = '';
             $selected_jasa_detail = ''; $selected_nominal = '';
             header("refresh:2;url=create_pengeluaran.php");
         } else {
@@ -313,10 +323,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="kategori" class="form-label">Kategori Transaksi <span class="required">*</span></label>
+                        <label for="kategori_id" class="form-label">Kategori Transaksi <span class="required">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-tags"></i></span>
-                            <input type="text" class="form-control with-icon" id="kategori" name="kategori" value="<?php echo htmlspecialchars($selected_kategori); ?>" placeholder="Contoh: Pembelian Sparepart, Gaji Karyawan" required>
+                            <select class="form-select with-icon" id="kategori_id" name="kategori_id" required>
+                                <option value="">-- Pilih Kategori --</option>
+                                <?php if ($kategori_result): while ($k = mysqli_fetch_assoc($kategori_result)): ?>
+                                    <option value="<?php echo $k['id']; ?>" <?php echo $selected_kategori_id == $k['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($k['nama']); ?></option>
+                                <?php endwhile; endif; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
