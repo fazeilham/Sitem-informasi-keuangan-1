@@ -22,8 +22,17 @@ $result_pemasukan = mysqli_query($koneksi, $query_pemasukan);
 $result_pengeluaran = mysqli_query($koneksi, $query_pengeluaran);
 $result_transaksi = mysqli_query($koneksi, $query_transaksi);
 
-$total_pemasukan = mysqli_fetch_assoc($result_pemasukan)['total'] ?? 0;
-$total_pengeluaran = mysqli_fetch_assoc($result_pengeluaran)['total'] ?? 0;
+$total_pemasukan = 0;
+if ($result_pemasukan && mysqli_num_rows($result_pemasukan) > 0) {
+    $row = mysqli_fetch_assoc($result_pemasukan);
+    $total_pemasukan = $row['total'] ?? 0;
+}
+
+$total_pengeluaran = 0;
+if ($result_pengeluaran && mysqli_num_rows($result_pengeluaran) > 0) {
+    $row = mysqli_fetch_assoc($result_pengeluaran);
+    $total_pengeluaran = $row['total'] ?? 0;
+}
 $saldo = $total_pemasukan - $total_pengeluaran;
 ?>
 <!DOCTYPE html>
@@ -147,11 +156,21 @@ $saldo = $total_pemasukan - $total_pengeluaran;
         background-color: #f8f9fa;
     }
 
+    .detail-text {
+        font-size: 0.9rem;
+        color: #6c757d;
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     .badge-pemasukan {
         background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         color: white;
         padding: 5px 15px;
         border-radius: 20px;
+        font-weight: 600;
     }
 
     .badge-pengeluaran {
@@ -159,6 +178,12 @@ $saldo = $total_pemasukan - $total_pengeluaran;
         color: white;
         padding: 5px 15px;
         border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        border-radius: 10px;
     }
 
     .btn-action {
@@ -354,72 +379,82 @@ $saldo = $total_pemasukan - $total_pengeluaran;
 
         <!-- Recent Transactions -->
         <div class="card table-card">
-            <div class="card-header"
+            <div class="card-header d-flex justify-content-between align-items-center"
                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0;">
                 <h5 class="mb-0">
                     <i class="bi bi-clock-history"></i> Transaksi Terbaru
                 </h5>
+                <a href="CRUD/lihat.php" class="btn btn-light btn-sm">
+                    <i class="bi bi-list-ul"></i> Lihat Semua
+                </a>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-hover mb-0 align-middle">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>Kategori</th>
+                                <th class="text-center" style="width: 100px;">Tanggal</th>
+                                <th style="width: 150px;">Kategori</th>
                                 <th>Keterangan</th>
-                                <th>Jenis</th>
-                                <th>Jumlah</th>
-                                <th>Aksi</th>
+                                <th class="text-center" style="width: 120px;">Jenis</th>
+                                <th class="text-end" style="width: 180px;">Jumlah</th>
+                                <th class="text-center" style="width: 120px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
-                            if (mysqli_num_rows($result_transaksi) > 0) {
+                            if (mysqli_num_rows($result_transaksi) > 0) {   
                                 while ($row = mysqli_fetch_assoc($result_transaksi)) {
                                     $badge_class = $row['jenis'] == 'pemasukan' ? 'badge-pemasukan' : 'badge-pengeluaran';
                                     $icon = $row['jenis'] == 'pemasukan' ? 'arrow-down-circle' : 'arrow-up-circle';
                                     ?>
                             <tr>
-                                <td><?php echo date('d/m/Y', strtotime($row['tanggal'])); ?></td>
+                                <td class="text-center text-muted small">
+                                    <?php echo date('d/m/Y', strtotime($row['tanggal'])); ?>
+                                </td>
                                 <td>
-                                    <?php 
-                                    $kategori_display = !empty($row['nama_kategori']) ? $row['nama_kategori'] : $row['kategori'];
-                                    echo htmlspecialchars($kategori_display); 
-                                    ?>
+                                    <strong>
+                                        <?php 
+                                        $kategori_display = !empty($row['nama_kategori']) ? $row['nama_kategori'] : $row['kategori'];
+                                        echo htmlspecialchars($kategori_display); 
+                                        ?>
+                                    </strong>
                                 </td>
                                 <td>
                                     <div class="detail-text"
                                         title="<?php echo htmlspecialchars($row['keterangan']); ?>">
                                         <?php 
                                         if (!empty($row['nama_pelanggan'])) {
-                                            echo "<strong>" . htmlspecialchars($row['nama_pelanggan']) . "</strong>";
-                                            if (!empty($row['no_plat'])) echo " (" . htmlspecialchars($row['no_plat']) . ")";
+                                            echo "<span class='text-dark fw-semibold'>" . htmlspecialchars($row['nama_pelanggan']) . "</span>";
+                                            if (!empty($row['no_plat'])) echo " <span class='text-muted'>(" . htmlspecialchars($row['no_plat']) . ")</span>";
                                             echo "<br>";
                                         }
                                         echo htmlspecialchars($row['keterangan']); 
                                         ?>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     <span class="<?php echo $badge_class; ?>">
-                                        <i class="bi bi-<?php echo $icon; ?>"></i>
+                                        <i class="bi bi-<?php echo $icon; ?> me-1"></i>
                                         <?php echo ucfirst($row['jenis']); ?>
                                     </span>
                                 </td>
                                 <td
-                                    class="fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">
+                                    class="text-end fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">
                                     Rp <?php echo number_format($row['jumlah'], 0, ',', '.'); ?>
                                 </td>
-                                <td>
-                                    <a href="CRUD/update.php?id=<?php echo $row['id']; ?>"
-                                        class="btn btn-sm btn-warning">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="CRUD/delete.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
-                                        onclick="return confirm('Yakin ingin menghapus?')">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                <td class="text-center">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a href="CRUD/update.php?id=<?php echo $row['id']; ?>"
+                                            class="btn btn-sm btn-warning" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="CRUD/delete.php?id=<?php echo $row['id']; ?>"
+                                            class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Yakin ingin menghapus?')" title="Hapus">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             <?php
@@ -428,9 +463,15 @@ $saldo = $total_pemasukan - $total_pengeluaran;
                                 ?>
                             <tr>
                                 <td colspan="6" class="text-center py-5">
-                                    <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
-                                    <p class="mt-3 text-muted">Belum ada transaksi. Mulai dengan menambahkan transaksi
-                                        pertama Anda!</p>
+                                    <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+                                    <h5 class="mt-3 text-muted">Belum Ada Transaksi</h5>
+                                    <p class="text-muted mb-4">Mulai dengan menambahkan transaksi pertama Anda!</p>
+                                    <a href="CRUD/create_pemasukan.php" class="btn btn-success me-2">
+                                        <i class="bi bi-plus-circle"></i> Tambah Pemasukan
+                                    </a>
+                                    <a href="CRUD/create_pengeluaran.php" class="btn btn-danger">
+                                        <i class="bi bi-dash-circle"></i> Tambah Pengeluaran
+                                    </a>
                                 </td>
                             </tr>
                             <?php

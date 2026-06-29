@@ -417,6 +417,20 @@ $total_transaksi = mysqli_num_rows($result);
                                     $unit_keterangan = !empty($row['unit_keterangan']) ? $row['unit_keterangan'] : '-';
                                     $jasa_detail = !empty($row['jasa_detail']) ? $row['jasa_detail'] : '-';
                                     $barang_sparepart = !empty($row['barang_sparepart']) ? $row['barang_sparepart'] : '-';
+
+                                    $detail_items = '';
+                                    $detail_q = mysqli_query($koneksi, "SELECT sparepart_id, nama_item, qty, harga_satuan, subtotal FROM detail_transaksi WHERE transaksi_id = '" . intval($row['id']) . "'");
+                                    if ($detail_q && mysqli_num_rows($detail_q) > 0) {
+                                        $items = [];
+                                        while ($d = mysqli_fetch_assoc($detail_q)) {
+                                            $item_label = htmlspecialchars($d['nama_item']);
+                                            $qty_text = intval($d['qty']) > 0 ? intval($d['qty']) . ' x ' : '';
+                                            $harga_text = 'Rp ' . number_format($d['harga_satuan'], 0, ',', '.');
+                                            $subtotal_text = 'Rp ' . number_format($d['subtotal'], 0, ',', '.');
+                                            $items[] = htmlspecialchars($qty_text) . $item_label . ' (' . $harga_text . ', Subtotal ' . $subtotal_text . ')';
+                                        }
+                                        $detail_items = implode('<br>', $items);
+                                    }
                                     ?>
                             <tr>
                                 <td><strong><?php echo $no++; ?></strong></td>
@@ -445,6 +459,7 @@ $total_transaksi = mysqli_num_rows($result);
                                 <td>
                                     <div class="detail-text-full">
                                         <?php echo htmlspecialchars($barang_sparepart); ?>
+                                        <?php if (!empty($detail_items)): ?><br><small><?php echo $detail_items; ?></small><?php endif; ?>
                                     </div>
                                 </td>
                                 <td class="fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">

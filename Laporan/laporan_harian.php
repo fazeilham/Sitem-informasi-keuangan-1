@@ -189,10 +189,14 @@ $tanggal_display = date('d F Y', strtotime($tanggal));
                             <i class="bi bi-house-door"></i> Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="../CRUD/create.php">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                             <i class="bi bi-plus-circle"></i> Tambah Transaksi
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="../CRUD/create_pemasukan.php">Tambah Pemasukan</a></li>
+                            <li><a class="dropdown-item" href="../CRUD/create_pengeluaran.php">Tambah Pengeluaran</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="../CRUD/lihat.php">
