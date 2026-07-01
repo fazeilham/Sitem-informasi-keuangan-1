@@ -2,6 +2,11 @@
 session_start();
 if (!isset($_SESSION['user_id'])) { header("Location: ../../login.php"); exit(); }
 require_once '../../DB/koneksi.php';
+require_once '../../helpers.php';
+if (!is_admin()) {
+    header("Location: ../../index.php");
+    exit();
+}
 
 // Dapatkan kolom yang ada di tabel sparepart
 $available_columns = [];
@@ -16,7 +21,6 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Ambil data dari form
     $nama       = mysqli_real_escape_string($koneksi, trim($_POST['nama']));
-    $kode_part  = isset($_POST['kode_part']) ? mysqli_real_escape_string($koneksi, trim($_POST['kode_part'])) : '';
     $satuan     = isset($_POST['satuan']) ? mysqli_real_escape_string($koneksi, trim($_POST['satuan'])) : '';
     $harga_beli = isset($_POST['harga_beli']) ? floatval(str_replace('.', '', $_POST['harga_beli'])) : 0;
     $harga_jual = isset($_POST['harga_jual']) ? floatval(str_replace('.', '', $_POST['harga_jual'])) : 0;
@@ -28,11 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Siapkan kolom dan nilai yang akan diinsert
         $insert_columns = ['nama'];
         $insert_values = ["'$nama'"];
-        
-        if (in_array('kode_part', $available_columns)) {
-            $insert_columns[] = 'kode_part';
-            $insert_values[] = "'$kode_part'";
-        }
         
         if (in_array('satuan', $available_columns)) {
             $insert_columns[] = 'satuan';
@@ -94,11 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             required>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Kode Part</label>
-                            <input type="text" name="kode_part" class="form-control" placeholder="cth: OLI-001">
-                        </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-12 mb-3">
                             <label class="form-label">Satuan</label>
                             <input type="text" name="satuan" class="form-control" placeholder="cth: liter, pcs, set">
                         </div>

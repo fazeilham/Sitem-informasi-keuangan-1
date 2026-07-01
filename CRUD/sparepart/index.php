@@ -2,6 +2,11 @@
 session_start();
 if (!isset($_SESSION['user_id'])) { header("Location: ../../login.php"); exit(); }
 require_once '../../DB/koneksi.php';
+require_once '../../helpers.php';
+if (!is_admin()) {
+    header("Location: ../../index.php");
+    exit();
+}
 
 // Dapatkan kolom yang ada di tabel sparepart
 $available_columns = [];
@@ -56,37 +61,31 @@ $sparepart = mysqli_query($koneksi, "SELECT * FROM sparepart ORDER BY nama");
             <div class="card-body table-responsive">
                 <table class="table table-bordered table-hover">
                     <thead class="table-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Nama</th>
-                            <?php if (in_array('kode_part', $available_columns)): ?>
-                            <th>Kode Part</th>
-                            <?php endif; ?>
-                            <?php if (in_array('satuan', $available_columns)): ?>
+                    <tr>
+                        <th>#</th>
+                        <th>Nama</th>
+                        <?php if (in_array('satuan', $available_columns)): ?>
                             <th>Satuan</th>
-                            <?php endif; ?>
-                            <?php if (in_array('harga_beli', $available_columns)): ?>
+                        <?php endif; ?>
+                        <?php if (in_array('harga_beli', $available_columns)): ?>
                             <th>Harga Beli</th>
-                            <?php endif; ?>
-                            <?php if (in_array('harga_jual', $available_columns)): ?>
+                        <?php endif; ?>
+                        <?php if (in_array('harga_jual', $available_columns)): ?>
                             <th>Harga Jual</th>
-                            <?php endif; ?>
-                            <?php if (in_array('stok', $available_columns)): ?>
+                        <?php endif; ?>
+                        <?php if (in_array('stok', $available_columns)): ?>
                             <th>Stok</th>
-                            <?php endif; ?>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
+                        <?php endif; ?>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
                     <tbody>
                         <?php $no = 1; while ($row = mysqli_fetch_assoc($sparepart)): ?>
                         <tr>
                             <td><?= $no++ ?></td>
                             <td><?= htmlspecialchars($row['nama']) ?></td>
-                            <?php if (in_array('kode_part', $available_columns)): ?>
-                            <td><?= htmlspecialchars($row['kode_part'] ?? '-') ?></td>
-                            <?php endif; ?>
                             <?php if (in_array('satuan', $available_columns)): ?>
-                            <td><?= htmlspecialchars($row['satuan'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($row['satuan'] ?? '-') ?></td>
                             <?php endif; ?>
                             <?php if (in_array('harga_beli', $available_columns)): ?>
                             <td>Rp <?= number_format($row['harga_beli'] ?? 0, 0, ',', '.') ?></td>

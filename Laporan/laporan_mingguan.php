@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../DB/koneksi.php';
+require_once '../helpers.php';
 
 // Jika belum login, redirect ke login
 if (!isset($_SESSION['user_id'])) {
@@ -204,7 +205,8 @@ $tanggal_akhir_display = date('d F Y', strtotime($tanggal_akhir));
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="../CRUD/create_pemasukan.php">Tambah Pemasukan</a></li>
-                            <li><a class="dropdown-item" href="../CRUD/create_pengeluaran.php">Tambah Pengeluaran</a></li>
+                            <li><a class="dropdown-item" href="../CRUD/create_pengeluaran.php">Tambah Pengeluaran</a>
+                            </li>
                         </ul>
                     </li>
                     <li class="nav-item">
@@ -226,11 +228,13 @@ $tanggal_akhir_display = date('d F Y', strtotime($tanggal_akhir));
                                     Laporan Bulanan</a></li>
                         </ul>
                     </li>
+                    <?php if (is_admin()): ?>
                     <li class="nav-item">
                         <a class="nav-link" href="../about.php">
                             <i class="bi bi-info-circle"></i> Tentang
                         </a>
                     </li>
+                    <?php endif; ?>
                     <li class="nav-item">
                         <a class="nav-link" href="../logout.php">
                             <i class="bi bi-box-arrow-right"></i> Logout

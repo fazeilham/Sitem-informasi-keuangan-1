@@ -2,6 +2,11 @@
 session_start();
 if (!isset($_SESSION['user_id'])) { header("Location: ../../login.php"); exit(); }
 require_once '../../DB/koneksi.php';
+require_once '../../helpers.php';
+if (!is_admin()) {
+    header("Location: ../../index.php");
+    exit();
+}
 
 // Dapatkan kolom yang ada di tabel sparepart
 $available_columns = [];
@@ -20,7 +25,6 @@ if (!$data) { header("Location: index.php"); exit(); }
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama       = mysqli_real_escape_string($koneksi, trim($_POST['nama']));
-    $kode_part  = isset($_POST['kode_part']) ? mysqli_real_escape_string($koneksi, trim($_POST['kode_part'])) : '';
     $satuan     = isset($_POST['satuan']) ? mysqli_real_escape_string($koneksi, trim($_POST['satuan'])) : '';
     $harga_beli = isset($_POST['harga_beli']) ? floatval($_POST['harga_beli']) : 0;
     $harga_jual = isset($_POST['harga_jual']) ? floatval($_POST['harga_jual']) : 0;
@@ -31,10 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Siapkan set untuk update
         $update_sets = ["nama='$nama'"];
-        
-        if (in_array('kode_part', $available_columns)) {
-            $update_sets[] = "kode_part='$kode_part'";
-        }
         
         if (in_array('satuan', $available_columns)) {
             $update_sets[] = "satuan='$satuan'";
@@ -90,17 +90,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             value="<?= htmlspecialchars($data['nama'] ?? '') ?>" required>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Kode Part</label>
-                            <input type="text" name="kode_part" class="form-control"
-                                value="<?= htmlspecialchars($data['kode_part'] ?? '') ?>">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Satuan</label>
-                            <input type="text" name="satuan" class="form-control"
-                                value="<?= htmlspecialchars($data['satuan'] ?? '') ?>">
-                        </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Satuan</label>
+                        <input type="text" name="satuan" class="form-control" value="<?= htmlspecialchars($data['satuan'] ?? '') ?>">
                     </div>
+                </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Harga Beli</label>

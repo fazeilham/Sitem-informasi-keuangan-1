@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../DB/koneksi.php';
+require_once '../helpers.php';
 
 // Ambil daftar kategori (hanya pengeluaran)
 $kategori_result = mysqli_query($koneksi, "SELECT * FROM kategori WHERE jenis = 'pengeluaran' ORDER BY nama");
@@ -313,6 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         class="bi bi-calendar-month"></i> Laporan Bulanan</a></li>
                         </ul>
                     </li>
+                    <?php if (is_admin()): ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-database"></i> Master Data
@@ -331,6 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <i class="bi bi-info-circle"></i> Tentang
                         </a>
                     </li>
+                    <?php endif; ?>
                     <li class="nav-item">
                         <a class="nav-link" href="../logout.php">
                             <i class="bi bi-box-arrow-right"></i> Logout

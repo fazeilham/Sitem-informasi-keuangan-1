@@ -5,6 +5,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 require_once '../../DB/koneksi.php';
+require_once '../../helpers.php';
+if (!is_admin()) {
+    header("Location: ../../index.php");
+    exit();
+}
 
 // Proses Hapus
 if (isset($_GET['hapus'])) {

@@ -2,6 +2,11 @@
 session_start();
 if (!isset($_SESSION['user_id'])) { header("Location: ../../login.php"); exit(); }
 require_once '../../DB/koneksi.php';
+require_once '../../helpers.php';
+if (!is_admin()) {
+    header("Location: ../../index.php");
+    exit();
+}
 
 $id = intval($_GET['id'] ?? 0);
 $data = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT * FROM pelanggan WHERE id = $id"));

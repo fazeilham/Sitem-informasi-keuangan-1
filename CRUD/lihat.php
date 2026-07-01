@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../DB/koneksi.php';
+require_once '../helpers.php';
 
 // Jika belum login, redirect ke login
 if (!isset($_SESSION['user_id'])) {
@@ -289,11 +290,13 @@ $total_transaksi = mysqli_num_rows($result);
                                         class="bi bi-calendar-month"></i> Laporan Bulanan</a></li>
                         </ul>
                     </li>
+                    <?php if (is_admin()): ?>
                     <li class="nav-item">
                         <a class="nav-link" href="../about.php">
                             <i class="bi bi-info-circle"></i> Tentang
                         </a>
                     </li>
+                    <?php endif; ?>
                     <li class="nav-item">
                         <a class="nav-link" href="../logout.php">
                             <i class="bi bi-box-arrow-right"></i> Logout
@@ -462,7 +465,8 @@ $total_transaksi = mysqli_num_rows($result);
                                         <?php if (!empty($detail_items)): ?><br><small><?php echo $detail_items; ?></small><?php endif; ?>
                                     </div>
                                 </td>
-                                <td class="fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">
+                                <td
+                                    class="fw-bold <?php echo $row['jenis'] == 'pemasukan' ? 'text-success' : 'text-danger'; ?>">
                                     <?php echo $row['jenis'] == 'pemasukan' ? '+' : '-'; ?>Rp
                                     <?php echo number_format($row['jumlah'], 0, ',', '.'); ?>
                                 </td>
